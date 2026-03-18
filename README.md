@@ -30,8 +30,7 @@ Clone the repository:
 git clone https://github.com/TAX2310/Flood-Mapping.git
 cd Flood-Mapping
 
-
-## Google Drive Mounting
+### Clone Repository / Google Drive Mount from Notebook
 
 All notebooks in this project include a form at the top that allows you to optionally mount a Google Drive and or clone the git repository.
 

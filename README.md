@@ -9,9 +9,9 @@ This repository contains the notebooks and configuration for a flood-mapping pro
 ```text 
 Flood-Mapping/
 ├── config.py
-├── STURM-Flood.ipynb
-├── SAR/
-├── Optical/
+├── 01_setup.ipynb
+├── S1/
+├── S2/
 ├── Fusion/
 ```
 
@@ -34,7 +34,7 @@ All notebooks in this project include a form at the top that allows you to optio
 - Set `mount_drive = False` to run entirely within the temporary Colab environment
 
 ## Workflow
-### 1. STURM-Flood.ipynb
+### 1. 01_setup.ipynb
 
 This notebook should be run first.
 

@@ -10,9 +10,6 @@ class SturmS1Dataset(Dataset):
         self.cfg = cfg
         self.is_train = is_train
 
-    def get_events(self):
-        return sorted({p["event_id"] for p in self.pairs})
-
     def __len__(self):
         return len(self.pairs)
 
@@ -44,4 +41,5 @@ class SturmS1Dataset(Dataset):
             "image": image.float(),
             "mask": mask.long(),
             "id": item["id"],
+            "event_id": item["event_id"],
         }

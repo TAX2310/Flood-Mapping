@@ -14,9 +14,6 @@ class SturmS1Dataset(Dataset):
         self.is_train = is_train
         self.use_rotation = use_rotation
 
-        # expand dataset only if rotation is enabled
-        self.multiplier = 4 if self.use_rotation else 1
-
     def __len__(self):
         return len(self.pairs) * self.multiplier
 

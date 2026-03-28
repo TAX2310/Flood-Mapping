@@ -9,6 +9,7 @@ def make_dataloaders(cfg):
 
     pairs = build_s1_index(cfg)
     train_pairs, val_pairs, test_pairs = split_by_event(pairs, cfg)
+    #train_pairs, val_pairs, test_pairs = split_pairs(pairs, cfg)
 
     train_ds = SturmS1Dataset(train_pairs, cfg, is_train=True)
     val_ds = SturmS1Dataset(val_pairs, cfg, is_train=False)

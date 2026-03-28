@@ -1,6 +1,7 @@
 import random
 from collections import defaultdict
 from S1.util.path import *
+from data.intersection import get_intersection_ids
 
 def build_s1_index(cfg):
     img_dir, mask_dir = get_data_dirs(cfg)
@@ -26,6 +27,13 @@ def build_s1_index(cfg):
             "mask_path": mask_path,
         })
 
+    intersection_ids = get_intersection_ids(
+        cfg.S1_METADATA_CSV,
+        cfg.S2_METADATA_CSV,
+        key="tile_id"
+    )
+    pairs = [p for p in pairs if p["id"] in intersection_ids]
+
     return pairs
 
 def split_pairs(pairs, cfg):
@@ -43,41 +51,31 @@ def split_pairs(pairs, cfg):
 
     return train_pairs, val_pairs, test_pairs
 
-def group_by_event(pairs):
-    groups = defaultdict(list)
-
-    for p in pairs:
-        event_id = p["id"].split("_")[0]
-        groups[event_id].append(p)
-
-    return groups
-
 def split_by_event(pairs, cfg):
     # 1. Group tiles by event
     groups = defaultdict(list)
     for p in pairs:
-        event_id = p["event_id"] if "event_id" in p else p["id"].split("_")[0]
+        event_id = p["event_id"]
         groups[event_id].append(p)
 
-    event_ids = list(groups.keys())
+    all_events = set(groups.keys())
 
-    # 2. Shuffle events (reproducible)
-    rng = random.Random(cfg.RANDOM_SEED)
-    rng.shuffle(event_ids)
+    train_events = set(cfg.TRAIN_EVENTS)
+    val_events   = set(cfg.VAL_EVENTS)
+    test_events  = set(cfg.TEST_EVENTS)
 
-    # 3. Fixed split
-    n_train = cfg.N_TRAIN_EVENTS
-    n_val = cfg.N_VAL_EVENTS
-    n_test = cfg.N_TEST_EVENTS
+    # 2. Safety checks
+    overlap = (train_events & val_events) | (train_events & test_events) | (val_events & test_events)
+    assert not overlap, f"Overlapping events found across splits: {overlap}"
 
-    assert len(event_ids) == (n_train + n_val + n_test), \
-        f"Expected 47 events, got {len(event_ids)}"
+    assigned_events = train_events | val_events | test_events
+    missing_events = all_events - assigned_events
+    extra_events = assigned_events - all_events
 
-    train_events = event_ids[:n_train]
-    val_events   = event_ids[n_train:n_train + n_val]
-    test_events  = event_ids[n_train + n_val:]
+    assert not missing_events, f"Some events in pairs are not assigned to a split: {missing_events}"
+    assert not extra_events, f"Some cfg split events are not present in pairs: {extra_events}"
 
-    # 4. Flatten back to tile-level
+    # 3. Flatten back to tile-level
     train_pairs = [p for e in train_events for p in groups[e]]
     val_pairs   = [p for e in val_events   for p in groups[e]]
     test_pairs  = [p for e in test_events  for p in groups[e]]

@@ -13,13 +13,9 @@ class CFG:
     RANDOM_SEED: int = 42
 
     # split
-    TRAIN_RATIO: float = 0.80
-    VAL_RATIO: float = 0.10
-    TEST_RATIO: float = 0.10
-
-    N_TRAIN_EVENTS: int = 37
-    N_VAL_EVENTS: int = 5
-    N_TEST_EVENTS: int = 5
+    TRAIN_EVENTS = {"EMSR470", "EMSR467", "EMSR416", "EMSR438", "EMSR407"}
+    VAL_EVENTS   = {"EMSR292", "EMSR479", "EMSR496"}
+    TEST_EVENTS  = {"EMSR419", "EMSR629", "EMSR501", "EMSR279"}
 
     # masks
     BINARY_MASK: bool = True
@@ -57,3 +53,11 @@ class CFG:
     @property
     def S1_MASK_PATH(self) -> Path:
         return self.S1_PATH / "Floodmaps"
+    
+    @property
+    def S1_METADATA_CSV(self) -> Path:
+        return self.DATA_PATH / "Sentinel1_metadata.csv"
+    
+    @property
+    def S2_METADATA_CSV(self) -> Path:
+        return self.DATA_PATH / "Sentinel2_metadata.csv"

@@ -23,14 +23,33 @@ def build_s1_index(cfg):
 
     return samples
 
+def build_s2_index(cfg):
+    image_dir = cfg.S2_PATH
+    mask_dir = cfg.MASK_PATH
+
+    df = pd.read_csv(cfg.METADATA_CSV)
+
+    samples = []
+    for i, row in df.iterrows():
+        event_id = row["ems_code"]
+        img_path = image_dir / row["tile_id"]
+        mask_path = mask_dir / row["tile_id"]
+
+        samples.append({
+            "id": i,
+            "event_id": event_id,
+            "image_path": img_path,
+            "mask_path": mask_path,
+        })
+
+    return samples
+
 def split_by_event(samples, cfg):
     # 1. Group tiles by event
     groups = defaultdict(list)
     for s in samples:
         event_id = s["event_id"]
         groups[event_id].append(s)
-
-    all_events = set(groups.keys())
 
     train_events = set(cfg.TRAIN_EVENTS)
     val_events   = set(cfg.VAL_EVENTS)

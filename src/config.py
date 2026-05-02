@@ -6,6 +6,9 @@ class CFG:
     # base path
     ROOT: Path = Path("./")
 
+    # Dataset
+    DATASET: str = "STURM-fusion-24"
+
     # download
     ZIP_URL: str = "https://huggingface.co/datasets/tax2310/STURM-fusion-24/resolve/main/Dataset.zip"
 
@@ -61,4 +64,8 @@ class CFG:
     @property
     def METADATA_CSV(self) -> Path:
         return self.METADATA_PATH / "metadata.csv"
+    
+    EXP_DIR: str = ""
+    
+    
     

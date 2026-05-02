@@ -1,4 +1,4 @@
-from config import CFG
+from src.config import CFG
 
 from dataclasses import dataclass
 from pathlib import Path
@@ -17,6 +17,16 @@ class S1_CFG(CFG):
 
     # SAR dataloader
     BATCH_SIZE: int = 16
-    NUM_WORKERS: int = 2
+    NUM_WORKERS: int = 0
     PIN_MEMORY: bool = True
     SHUFFLE_TRAIN: bool = True
+
+    # data augmentation
+    USE_ROTATIONS: bool = True
+
+    # training
+    EPOCHS: int = 20
+    LR: float = 1e-3
+
+    # model
+    MODEL: str = "unet_sar"

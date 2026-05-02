@@ -1,0 +1,77 @@
+import src.util.seed as seed
+import src.data.split as split
+import src.data.dataset as dataset
+import torch
+from torch.utils.data import DataLoader
+
+def make_s1_dataloaders(cfg):
+    seed.set_seed(cfg.RANDOM_SEED)
+    
+    samples = split.build_s1_index(cfg)
+    train_samples, val_samples, test_samples = split.split_by_event(samples, cfg)
+
+    train_ds = dataset.SturmS1Dataset(train_samples, cfg, is_train=True, use_rotation=cfg.USE_ROTATIONS)
+    val_ds = dataset.SturmS1Dataset(val_samples, cfg, is_train=False, use_rotation=False)
+    test_ds = dataset.SturmS1Dataset(test_samples, cfg, is_train=False, use_rotation=False)
+
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=cfg.BATCH_SIZE,
+        shuffle=cfg.SHUFFLE_TRAIN,
+        num_workers=cfg.NUM_WORKERS,
+        pin_memory=cfg.PIN_MEMORY,
+    )
+
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=cfg.BATCH_SIZE,
+        shuffle=False,
+        num_workers=cfg.NUM_WORKERS,
+        pin_memory=cfg.PIN_MEMORY,
+    )
+
+    test_loader = DataLoader(
+        test_ds,
+        batch_size=cfg.BATCH_SIZE,
+        shuffle=False,
+        num_workers=cfg.NUM_WORKERS,
+        pin_memory=cfg.PIN_MEMORY,
+    )
+
+    return train_loader, val_loader, test_loader
+
+def make_s2_dataloaders(cfg):
+    seed.set_seed(cfg.RANDOM_SEED)
+    
+    samples = split.build_s2_index(cfg)
+    train_samples, val_samples, test_samples = split.split_by_event(samples, cfg)
+
+    train_ds = dataset.SturmS2Dataset(train_samples, cfg, is_train=True, use_rotation=cfg.USE_ROTATIONS)
+    val_ds = dataset.SturmS2Dataset(val_samples, cfg, is_train=False, use_rotation=False)
+    test_ds = dataset.SturmS2Dataset(test_samples, cfg, is_train=False, use_rotation=False)
+
+    train_loader = DataLoader(
+        train_ds,
+        batch_size=cfg.BATCH_SIZE,
+        shuffle=cfg.SHUFFLE_TRAIN,
+        num_workers=cfg.NUM_WORKERS,
+        pin_memory=cfg.PIN_MEMORY,
+    )
+
+    val_loader = DataLoader(
+        val_ds,
+        batch_size=cfg.BATCH_SIZE,
+        shuffle=False,
+        num_workers=cfg.NUM_WORKERS,
+        pin_memory=cfg.PIN_MEMORY,
+    )
+
+    test_loader = DataLoader(
+        test_ds,
+        batch_size=cfg.BATCH_SIZE,
+        shuffle=False,
+        num_workers=cfg.NUM_WORKERS,
+        pin_memory=cfg.PIN_MEMORY,
+    )
+
+    return train_loader, val_loader, test_loader

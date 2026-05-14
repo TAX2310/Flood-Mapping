@@ -6,7 +6,7 @@ import sys
 
 import src.data.dataloader as DataLoader
 import src.losses.losses as losses
-import src.S1.models.models as models
+import src.fusion.models.models as models
 
 from src.util.metrics import metrics_from_logits
 import src.util.io as io
@@ -25,21 +25,22 @@ def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu"):
     )
 
     for batch in progress_bar:
-        images = batch["image"].to(device)
+        s1_images = batch["s1_image"].to(device)
+        s2_images = batch["s2_image"].to(device)
         masks = batch["mask"].to(device)
 
         with torch.set_grad_enabled(is_train):
             if is_train:
                 optimizer.zero_grad()
 
-            outputs = model(images)
+            outputs = model(s1_images, s2_images)
             loss = loss_fn(outputs, masks)
 
             if is_train:
                 loss.backward()
                 optimizer.step()
 
-        epoch_loss += loss.item() * images.size(0)
+        epoch_loss += loss.item() * s1_images.size(0)
 
         if not is_train:
             batch_metrics = metrics_from_logits(outputs, masks)
@@ -69,7 +70,7 @@ def train_model(cfg):
 
     model = models.get_model(cfg).to(cfg.DEVICE)
 
-    train_loader, val_loader, _ = DataLoader.make_s1_dataloaders(cfg)
+    train_loader, val_loader, _ = DataLoader.make_fusion_dataloaders(cfg)
 
     optimizer = optim.AdamW(
         model.parameters(),
@@ -195,7 +196,7 @@ def train_from_file(cfg):
     cmd = [
         sys.executable,
         "-u",  # unbuffered output
-        str(cfg.ROOT / "src/S1/training/train.py"),
+        str(cfg.ROOT / "src/fusion/training/train.py"),
         "--path",
         str(cfg_path),
     ]

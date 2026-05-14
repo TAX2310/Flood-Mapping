@@ -5,6 +5,8 @@ import torch
 from pathlib import Path
 from datetime import datetime
 import rasterio
+import pickle
+from types import SimpleNamespace
 
 from src.config import CFG
 
@@ -58,36 +60,45 @@ def save_checkpoint(path, model, optimizer, scheduler, epoch, history, best_val_
 
 def experiment_dir(cfg):
 
-    model_name = f"{cfg.DATASET}_{cfg.MODEL}"
-    exp_name = f"lr{cfg.LR}_bs{cfg.BATCH_SIZE}_e{cfg.EPOCHS}"
+    exp_dir = Path(cfg.EXP_DIR) / Path(cfg.DATASET) / Path(cfg.DATA_TYPE) / f"{cfg.MODEL}__{cfg.SPLIT_METHOD}__{f'rotation_{cfg.USE_ROTATIONS}'}" / f'lr_{cfg.LR}__bs_{cfg.BATCH_SIZE}__e_{cfg.EPOCHS}'
 
-    exp_dir = Path(cfg.ROOT) / "experiments" / model_name / exp_name
     exp_dir.mkdir(parents=True, exist_ok=True)
 
     return exp_dir
 
-def load_cfg_from_json(path):
+def save_config_pickle(cfg, path):
     path = Path(path)
 
+    with open(path, "wb") as f:
+        pickle.dump(cfg, f)
+
+
+def load_config_pickle(path):
+    path = Path(path)
+
+    with open(path, "rb") as f:
+        cfg = pickle.load(f)
+
+    return cfg        
+
+def load_config_json(path):
+    """
+    Load a JSON config file and return it as an object.
+
+    Example:
+        cfg = load_config_json("config.json")
+        print(cfg.LR)
+    """
+
+    path = Path(path)
+
+    if not path.exists():
+        raise FileNotFoundError(f"Config file not found: {path}")
+
     with open(path, "r") as f:
-        cfg_dict = json.load(f)
+        config_dict = json.load(f)
 
-    cfg = CFG()
-
-    for k, v in cfg_dict.items():
-        # optional: cast back to correct type if needed
-        current_val = getattr(cfg, k, None)
-
-        if isinstance(current_val, bool):
-            v = v == "True"
-        elif isinstance(current_val, int):
-            v = int(v)
-        elif isinstance(current_val, float):
-            v = float(v)
-
-        setattr(cfg, k, v)
-
-    return cfg
+    return SimpleNamespace(**config_dict)
 
 def read_image_tif(path):
     """
@@ -98,7 +109,6 @@ def read_image_tif(path):
         arr = src.read()  # numpy [C,H,W]
 
     return torch.from_numpy(arr).float()
-
 
 def read_mask_tif(path):
     """

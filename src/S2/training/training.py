@@ -1,10 +1,14 @@
+import sys
+import subprocess
+from pathlib import Path
+
 import torch
 import torch.optim as optim
 from tqdm.auto import tqdm
 
-import src.data.dataloader as S1DataLoader
+import src.data.dataloader as DataLoader
 import src.losses.losses as losses
-import src.S1.models.models as models
+import src.S2.models.models as models
 
 from src.util.metrics import metrics_from_logits
 import src.util.io as io
@@ -62,16 +66,17 @@ def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu"):
 def train_model(cfg):
 
     exp_dir = io.experiment_dir(cfg)
+    print(f"Experiment directory: {exp_dir}")
     io.save_config(cfg, exp_dir / "config.json")
 
-    model = models.get_model(cfg.MODEL).to(cfg.DEVICE)
+    model = models.get_model(cfg).to(cfg.DEVICE)
 
-    train_loader, val_loader, _ = S1DataLoader.make_dataloaders(cfg)
+    train_loader, val_loader, _ = DataLoader.make_s2_dataloaders(cfg)
 
     optimizer = optim.AdamW(
         model.parameters(),
         lr=cfg.LR,
-        weight_decay=1e-5
+        weight_decay=cfg.WEIGHT_DECAY
     )
 
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(
@@ -182,3 +187,37 @@ def train_model(cfg):
         checkpoint_path.unlink()
 
     return model, history
+
+def train_from_file(cfg):
+    cfg.NUM_WORKERS = 2
+
+    cfg_path = cfg.ROOT / "tmp_config.pkl"
+    io.save_config_pickle(cfg, cfg_path)
+
+    cmd = [
+        sys.executable,
+        "-u",  # unbuffered output
+        str(cfg.ROOT / "src/S2/training/train.py"),
+        "--path",
+        str(cfg_path),
+    ]
+
+    process = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        bufsize=1
+    )
+
+    for line in process.stdout:
+        print(line, end="")
+
+    process.wait()
+
+    if process.returncode != 0:
+        raise RuntimeError(
+            f"Training script failed with return code {process.returncode}"
+        )
+
+    return process

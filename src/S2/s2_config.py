@@ -6,16 +6,13 @@ from pathlib import Path
 @dataclass
 class S2_CFG(CFG):
 
+    DATA_TYPE: str = "Sentinel2_Optical"
+
     # input setup
     IMAGE_SIZE: int = 128
-    INPUT_CHANNELS: int = 2
-    ADD_RATIO_CHANNEL: bool = False
+    CHANNELS: int = 9
 
-    # STURM SAR normalisation
-    S1_MIN_DB: float = -30.0
-    S1_MAX_DB: float = 10.0
-
-    # SAR dataloader
+    # Optical dataloader
     BATCH_SIZE: int = 16
     NUM_WORKERS: int = 0
     PIN_MEMORY: bool = True
@@ -29,4 +26,8 @@ class S2_CFG(CFG):
     LR: float = 1e-3
 
     # model
-    MODEL: str = "unet_sar"
+    MODEL: str = "unet_optical"
+    DROPOUT_RATE: float = 0.0
+
+    # optimizer
+    WEIGHT_DECAY: float = 0.0

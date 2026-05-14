@@ -20,22 +20,16 @@ class CFG:
     VAL_EVENTS   = {"EMSR554", "EMSR424", "EMSR441"}
     TEST_EVENTS  = {"EMSR292", "EMSR407", "EMSR416", "EMSR422", "EMSR465", "EMSR567"}
 
+    TRAIN_SPLIT: float = 0.8
+    VAL_SPLIT: float = 0.10 
+    TEST_SPLIT: float = 0.10
+
+    SPLIT_METHOD: str = "random" #'by_event' or 'random'
+
     # masks
     BINARY_MASK: bool = True
     WATER_CLASSES: tuple = (1, 2, 3, 4, 5)
     IGNORE_CLASSES: tuple = (99,)
-
-    @property
-    def SAR_PATH(self) -> Path:
-        return self.ROOT / "SAR"
-
-    @property
-    def OPTICAL_PATH(self) -> Path:
-        return self.ROOT / "Optical"
-
-    @property
-    def FUSION_PATH(self) -> Path:
-        return self.ROOT / "Fusion"
 
     @property
     def DATA_PATH(self) -> Path:
@@ -52,6 +46,10 @@ class CFG:
     @property
     def S2_PATH(self) -> Path:
         return self.DATA_PATH / "S2"
+    
+    @property
+    def FUSION_PATH(self) -> Path:
+        return self.ROOT / "Fusion"
 
     @property
     def MASK_PATH(self) -> Path:
@@ -65,7 +63,6 @@ class CFG:
     def METADATA_CSV(self) -> Path:
         return self.METADATA_PATH / "metadata.csv"
     
-    EXP_DIR: str = ""
-    
-    
-    
+    @property
+    def EXP_DIR(self) -> Path:
+        return self.ROOT / "experiments"

@@ -6,7 +6,7 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.append(str(ROOT))
 
 import src.util.io as io
-import src.S1.training.training as training
+import src.fusion.training.training as training
 
 def parse_args():
     parser = argparse.ArgumentParser()

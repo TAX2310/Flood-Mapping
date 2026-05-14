@@ -6,12 +6,12 @@ import sys
 
 import src.data.dataloader as DataLoader
 import src.losses.losses as losses
-import src.S1.models.models as models
+import src.models.models as models
 
 from src.util.metrics import metrics_from_logits
 import src.util.io as io
 
-def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu"):
+def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu", fusion=False):
     is_train = optimizer is not None
     model.train() if is_train else model.eval()
 
@@ -25,21 +25,31 @@ def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu"):
     )
 
     for batch in progress_bar:
-        images = batch["image"].to(device)
-        masks = batch["mask"].to(device)
+        if fusion == True:
+            s1_images = batch["s1_image"].to(device)
+            s2_images = batch["s2_image"].to(device)
+            masks = batch["mask"].to(device)
+            batch_size = s1_images.size(0)
+        else:
+            images = batch["image"].to(device)
+            masks = batch["mask"].to(device)
+            batch_size = images.size(0)
 
         with torch.set_grad_enabled(is_train):
             if is_train:
                 optimizer.zero_grad()
 
-            outputs = model(images)
+            if fusion == True:
+                outputs = model(s1_images, s2_images)   
+            else:
+                outputs = model(images)
             loss = loss_fn(outputs, masks)
 
             if is_train:
                 loss.backward()
                 optimizer.step()
 
-        epoch_loss += loss.item() * images.size(0)
+        epoch_loss += loss.item() * batch_size
 
         if not is_train:
             batch_metrics = metrics_from_logits(outputs, masks)
@@ -66,10 +76,16 @@ def train_model(cfg):
     exp_dir = io.experiment_dir(cfg)
     print(f"Experiment directory: {exp_dir}")
     io.save_config(cfg, exp_dir / "config.json")
+    io.save_config_pickle(cfg, exp_dir / "config.pkl")
 
     model = models.get_model(cfg).to(cfg.DEVICE)
 
-    train_loader, val_loader, _ = DataLoader.make_s1_dataloaders(cfg)
+    if cfg.DATA_TYPE == "Sentinel1_SAR":
+        train_loader, val_loader, _ = DataLoader.make_s1_dataloaders(cfg)
+    elif cfg.DATA_TYPE == "Sentinel2_Optical":
+        train_loader, val_loader, _ = DataLoader.make_s2_dataloaders(cfg)
+    elif cfg.DATA_TYPE == "Fusion_SAR_Optical":
+        train_loader, val_loader, _ = DataLoader.make_fusion_dataloaders(cfg)
 
     optimizer = optim.AdamW(
         model.parameters(),
@@ -124,7 +140,8 @@ def train_model(cfg):
             train_loader,
             loss_fn,
             optimizer,
-            device=cfg.DEVICE
+            device=cfg.DEVICE,
+            fusion=True if cfg.DATA_TYPE == "Fusion_SAR_Optical" else False
         )
 
         val_loss, val_metrics = run_epoch(
@@ -132,7 +149,8 @@ def train_model(cfg):
             val_loader,
             loss_fn,
             optimizer=None,
-            device=cfg.DEVICE
+            device=cfg.DEVICE,
+            fusion=True if cfg.DATA_TYPE == "Fusion_SAR_Optical" else False
         )
 
         scheduler.step(val_loss)
@@ -195,7 +213,7 @@ def train_from_file(cfg):
     cmd = [
         sys.executable,
         "-u",  # unbuffered output
-        str(cfg.ROOT / "src/S1/training/train.py"),
+        str(cfg.ROOT / "src/train/train_from_file.py"),
         "--path",
         str(cfg_path),
     ]

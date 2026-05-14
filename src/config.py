@@ -66,3 +66,92 @@ class CFG:
     @property
     def EXP_DIR(self) -> Path:
         return self.ROOT / "experiments"
+    
+@dataclass
+class S1_CFG(CFG):
+
+    DATA_TYPE: str = "Sentinel1_SAR"
+
+    # input setup
+    IMAGE_SIZE: int = 128
+    CHANNELS: int = 2
+
+    # SAR dataloader
+    BATCH_SIZE: int = 16
+    NUM_WORKERS: int = 0
+    PIN_MEMORY: bool = True
+    SHUFFLE_TRAIN: bool = True
+
+    # data augmentation
+    USE_ROTATIONS: bool = True
+
+    # training
+    EPOCHS: int = 20
+    LR: float = 1e-3
+
+    # model
+    MODEL: str = "unet_sar"
+    DROPOUT_RATE: float = 0.0
+
+    # optimizer
+    WEIGHT_DECAY: float = 0.0
+
+@dataclass
+class S2_CFG(CFG):
+
+    DATA_TYPE: str = "Sentinel2_Optical"
+
+    # input setup
+    IMAGE_SIZE: int = 128
+    CHANNELS: int = 9
+
+    # Optical dataloader
+    BATCH_SIZE: int = 16
+    NUM_WORKERS: int = 0
+    PIN_MEMORY: bool = True
+    SHUFFLE_TRAIN: bool = True
+
+    # data augmentation
+    USE_ROTATIONS: bool = True
+
+    # training
+    EPOCHS: int = 20
+    LR: float = 1e-3
+
+    # model
+    MODEL: str = "unet_optical"
+    DROPOUT_RATE: float = 0.0
+
+    # optimizer
+    WEIGHT_DECAY: float = 0.0
+
+@dataclass
+class Fusion_CFG(CFG):
+
+    DATA_TYPE: str = "Fusion_SAR_Optical"
+
+    # input setup
+    IMAGE_SIZE: int = 128
+    S1_CHANNELS: int = 2
+    S2_CHANNELS: int = 9
+
+    # SAR dataloader
+    BATCH_SIZE: int = 16
+    NUM_WORKERS: int = 0
+    PIN_MEMORY: bool = True
+    SHUFFLE_TRAIN: bool = True
+
+    # data augmentation
+    USE_ROTATIONS: bool = True
+
+    # training
+    EPOCHS: int = 20
+    LR: float = 1e-3
+
+    # model
+    MODEL: str = "late_fusion_unet_resnet34"
+    ENCODER_WEIGHTS: str = None
+    DROPOUT_RATE: float = 0.0
+
+    # optimizer
+    WEIGHT_DECAY: float = 0.0

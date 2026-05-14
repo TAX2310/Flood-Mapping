@@ -98,7 +98,28 @@ def load_config_json(path):
     with open(path, "r") as f:
         config_dict = json.load(f)
 
-    return SimpleNamespace(**config_dict)
+    
+    # Remove environment-specific fields
+    fields_to_remove = {
+        "ROOT",
+        "DEVICE",
+    }
+
+    for key in fields_to_remove:
+        config_dict.pop(key, None)
+
+    if "DATA_TYPE" in config_dict:
+        if config_dict["DATA_TYPE"] == "Sentinel1_SAR":
+            from src.config import S1_CFG
+            return S1_CFG(**config_dict)
+        elif config_dict["DATA_TYPE"] == "Sentinel2_Optical":
+            from src.config import S2_CFG
+            return S2_CFG(**config_dict)
+        elif config_dict["DATA_TYPE"] == "Fusion_SAR_Optical":
+            from src.config import Fusion_CFG
+            return Fusion_CFG(**config_dict)
+    elif "DATA_TYPE" not in config_dict:
+        raise ValueError("Config file must contain 'DATA_TYPE' key")    
 
 def read_image_tif(path):
     """

@@ -4,13 +4,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 @dataclass
-class S1_CFG(CFG):
+class Fusion_CFG(CFG):
 
-    DATA_TYPE: str = "Sentinel1_SAR"
+    DATA_TYPE: str = "Fusion_SAR_Optical"
 
     # input setup
     IMAGE_SIZE: int = 128
-    CHANNELS: int = 2
+    S1_CHANNELS: int = 2
+    S2_CHANNELS: int = 9
 
     # SAR dataloader
     BATCH_SIZE: int = 16
@@ -26,7 +27,8 @@ class S1_CFG(CFG):
     LR: float = 1e-3
 
     # model
-    MODEL: str = "unet_sar"
+    MODEL: str = "late_fusion_unet_resnet34"
+    ENCODER_WEIGHTS: str = None
 
     # optimizer
     WEIGHT_DECAY: float = 1e-5

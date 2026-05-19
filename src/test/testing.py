@@ -99,3 +99,18 @@ def test_model(model_dir):
     print("Test Metrics:")
     for key, value in test_metrics.items():
         print(f"  {key}: {value:.4f}")
+
+    test_summary = {
+        "test_loss": float(test_loss),
+        **{
+            f"test_{key}": float(value)
+            for key, value in test_metrics.items()
+        }
+    }
+
+    io.update_summary(
+        model_dir / "summary.json",
+        test_summary,
+        section="test_metrics"
+    )
+    

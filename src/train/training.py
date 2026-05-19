@@ -11,6 +11,24 @@ import src.models.models as models
 from src.util.metrics import metrics_from_logits
 import src.util.io as io
 
+def is_best(val_metrics, best_metrics, eps=1e-6):
+    if not best_metrics:
+        return True
+
+    current_iou = val_metrics["iou"]
+    best_iou = best_metrics["iou"]
+
+    current_f1 = val_metrics["f1"]
+    best_f1 = best_metrics["f1"]
+
+    if current_iou > best_iou + eps:
+        return True
+
+    if abs(current_iou - best_iou) <= eps and current_f1 > best_f1 + eps:
+        return True
+
+    return False
+
 def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu", fusion=False):
     is_train = optimizer is not None
     model.train() if is_train else model.eval()
@@ -74,7 +92,20 @@ def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu", fusion=F
 def train_model(cfg):
 
     exp_dir = io.experiment_dir(cfg)
+    
+    print("")
+    print("#"*100)
+    print("Starting training with configuration:")
+    for key, value in vars(cfg).items():
+        print(f"{key}: {value}")
+    print("")
     print(f"Experiment directory: {exp_dir}")
+    print("#"*100)
+    print("")
+
+    if (exp_dir / "summary.json").exists():
+        print("Experiment already completed. Skipping training.")
+        return 
     io.save_config(cfg, exp_dir / "config.json")
     io.save_config_pickle(cfg, exp_dir / "config.pkl")
 
@@ -86,6 +117,8 @@ def train_model(cfg):
         train_loader, val_loader, _ = DataLoader.make_s2_dataloaders(cfg)
     elif cfg.DATA_TYPE == "Fusion_SAR_Optical":
         train_loader, val_loader, _ = DataLoader.make_fusion_dataloaders(cfg)
+    else:
+        raise ValueError(f"Unsupported DATA_TYPE: {cfg.DATA_TYPE}")
 
     optimizer = optim.AdamW(
         model.parameters(),
@@ -105,9 +138,11 @@ def train_model(cfg):
     checkpoint_path = exp_dir / "checkpoint.pth"
 
     history = []
-    best_val_loss = float("inf")
     best_epoch = 0
     best_metrics = {}
+
+    early_stopping_patience = 8
+    epochs_without_improvement = 0
     start_epoch = 0
 
     # Resume if checkpoint exists
@@ -127,6 +162,7 @@ def train_model(cfg):
             best_val_loss = checkpoint["best_val_loss"]
             best_epoch = checkpoint["best_epoch"]
             best_metrics = checkpoint["best_metrics"]
+            epochs_without_improvement = checkpoint["epochs_without_improvement"]
 
             start_epoch = checkpoint_epoch + 1
 
@@ -163,11 +199,25 @@ def train_model(cfg):
             f"Val F1: {val_metrics['f1']:.4f}"
         )
 
-        if val_loss < best_val_loss:
+
+        if is_best(val_metrics, best_metrics):
             best_val_loss = val_loss
             best_epoch = epoch + 1
-            best_metrics = val_metrics
+            best_metrics = val_metrics.copy()
+            epochs_without_improvement = 0
+
             io.save_model(model, exp_dir / "best_model.pth")
+            print(f"New best model saved at epoch {best_epoch} with IoU: {best_metrics['iou']:.4f}")
+
+        else:
+            epochs_without_improvement += 1
+
+        if epochs_without_improvement >= early_stopping_patience:
+            print(
+                f"Early stopping triggered at epoch {epoch + 1}. "
+                f"No IoU improvement for {early_stopping_patience} epochs."
+            )
+            break
 
         history.append({
             "epoch": epoch + 1,
@@ -189,7 +239,8 @@ def train_model(cfg):
             history,
             best_val_loss,
             best_epoch,
-            best_metrics
+            best_metrics,
+            epochs_without_improvement
         )
 
     io.save_summary({
@@ -199,8 +250,13 @@ def train_model(cfg):
     }, exp_dir / "summary.json")
 
     if checkpoint_path.exists():
-        print("Training complete. Removing checkpoint.")
         checkpoint_path.unlink()
+
+    print("")
+    print("#"*20)
+    print("Training complete. Removing checkpoint.")
+    print("#"*20)
+    print("")
 
     return model, history
 

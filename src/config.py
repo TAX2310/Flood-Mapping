@@ -31,6 +31,12 @@ class CFG:
     WATER_CLASSES: tuple = (1, 2, 3, 4, 5)
     IGNORE_CLASSES: tuple = (99,)
 
+    # Training
+    EPOCHS: int = 50
+
+    # data augmentation
+    USE_ROTATIONS: bool = False
+
     @property
     def DATA_PATH(self) -> Path:
         return self.ROOT / "Dataset"
@@ -77,20 +83,16 @@ class S1_CFG(CFG):
     CHANNELS: int = 2
 
     # SAR dataloader
-    BATCH_SIZE: int = 16
+    BATCH_SIZE: int = 0
     NUM_WORKERS: int = 0
     PIN_MEMORY: bool = True
     SHUFFLE_TRAIN: bool = True
 
-    # data augmentation
-    USE_ROTATIONS: bool = True
-
     # training
-    EPOCHS: int = 20
-    LR: float = 1e-3
+    LR: float = 0
 
     # model
-    MODEL: str = "unet_sar"
+    MODEL: str = "unet_resnet34_sar"
     DROPOUT_RATE: float = 0.0
 
     # optimizer
@@ -106,17 +108,13 @@ class S2_CFG(CFG):
     CHANNELS: int = 9
 
     # Optical dataloader
-    BATCH_SIZE: int = 16
+    BATCH_SIZE: int = 0
     NUM_WORKERS: int = 0
     PIN_MEMORY: bool = True
     SHUFFLE_TRAIN: bool = True
 
-    # data augmentation
-    USE_ROTATIONS: bool = True
-
     # training
-    EPOCHS: int = 20
-    LR: float = 1e-3
+    LR: float = 0
 
     # model
     MODEL: str = "unet_optical"
@@ -136,17 +134,13 @@ class Fusion_CFG(CFG):
     S2_CHANNELS: int = 9
 
     # SAR dataloader
-    BATCH_SIZE: int = 16
+    BATCH_SIZE: int = 0
     NUM_WORKERS: int = 0
     PIN_MEMORY: bool = True
     SHUFFLE_TRAIN: bool = True
 
-    # data augmentation
-    USE_ROTATIONS: bool = True
-
     # training
-    EPOCHS: int = 20
-    LR: float = 1e-3
+    LR: float = 0
 
     # model
     MODEL: str = "late_fusion_unet_resnet34"

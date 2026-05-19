@@ -13,6 +13,7 @@ from src.config import CFG
 def save_config(cfg, path):
     path = Path(path)
 
+
     cfg_dict = {
         k: str(v) for k, v in vars(cfg).items()
         if not k.startswith("__")
@@ -44,7 +45,7 @@ def save_summary(summary, path):
     with open(path, "w") as f:
         json.dump(summary, f, indent=4)
 
-def save_checkpoint(path, model, optimizer, scheduler, epoch, history, best_val_loss, best_epoch, best_metrics):
+def save_checkpoint(path, model, optimizer, scheduler, epoch, history, best_val_loss, best_epoch, best_metrics, epochs_without_improvement):
     checkpoint = {
         "epoch": epoch,
         "model_state_dict": model.state_dict(),
@@ -54,13 +55,14 @@ def save_checkpoint(path, model, optimizer, scheduler, epoch, history, best_val_
         "best_val_loss": best_val_loss,
         "best_epoch": best_epoch,
         "best_metrics": best_metrics,
+        "epochs_without_improvement": epochs_without_improvement
     }
 
     torch.save(checkpoint, path)
 
 def experiment_dir(cfg):
 
-    exp_dir = Path(cfg.EXP_DIR) / Path(cfg.DATASET) / Path(cfg.DATA_TYPE) / f"{cfg.MODEL}__{cfg.SPLIT_METHOD}__{f'rotation_{cfg.USE_ROTATIONS}'}" / f'lr_{cfg.LR}__bs_{cfg.BATCH_SIZE}__e_{cfg.EPOCHS}'
+    exp_dir = Path(cfg.EXP_DIR) / Path(cfg.DATASET) / Path(cfg.DATA_TYPE) / f'lr_{cfg.LR}' / f'bs_{cfg.BATCH_SIZE}' / f'wd_{cfg.WEIGHT_DECAY}' / f'dr_{cfg.DROPOUT_RATE}'
 
     exp_dir.mkdir(parents=True, exist_ok=True)
 
@@ -120,6 +122,33 @@ def load_config_json(path):
             return Fusion_CFG(**config_dict)
     elif "DATA_TYPE" not in config_dict:
         raise ValueError("Config file must contain 'DATA_TYPE' key")    
+    
+def update_summary(path, new_values, section=None):
+    """
+    Update an existing summary.json with new values.
+
+    If section is provided, values are saved under that section.
+    Example:
+        section="test_metrics"
+    """
+
+    path = Path(path)
+
+    if path.exists():
+        with open(path, "r") as f:
+            summary = json.load(f)
+    else:
+        summary = {}
+
+    if section is None:
+        summary.update(new_values)
+    else:
+        summary[section] = new_values
+
+    with open(path, "w") as f:
+        json.dump(summary, f, indent=4)
+
+    return summary
 
 def read_image_tif(path):
     """

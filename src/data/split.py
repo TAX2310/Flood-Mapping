@@ -10,12 +10,14 @@ def build_s1_index(cfg):
 
     samples = []
     for i, row in df.iterrows():
+        sample_id = row["tile_id"]
         event_id = row["ems_code"]
         img_path = image_dir / row["tile_id"]
         mask_path = mask_dir / row["tile_id"]
 
         samples.append({
             "id": i,
+            "sample_id": sample_id,
             "event_id": event_id,
             "image_path": img_path,
             "mask_path": mask_path,

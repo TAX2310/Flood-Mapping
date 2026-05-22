@@ -33,6 +33,7 @@ class CFG:
 
     # Training
     EPOCHS: int = 50
+    PATIENCE: int = 8
 
     # data augmentation
     USE_ROTATIONS: bool = False
@@ -73,6 +74,10 @@ class CFG:
     def EXP_DIR(self) -> Path:
         return self.ROOT / "experiments"
     
+    @property
+    def EXPORT_DIR(self) -> Path:
+        return self.ROOT / "exports"
+
 @dataclass
 class S1_CFG(CFG):
 
@@ -143,7 +148,7 @@ class Fusion_CFG(CFG):
     LR: float = 0
 
     # model
-    MODEL: str = "late_fusion_unet_resnet34"
+    MODEL: str = "unet_resnet34_fusion"
     ENCODER_WEIGHTS: str = None
     DROPOUT_RATE: float = 0.0
 

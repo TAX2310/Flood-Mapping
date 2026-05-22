@@ -113,4 +113,10 @@ def test_model(model_dir):
         test_summary,
         section="test_metrics"
     )
-    
+
+def select_model_to_test(cfg):
+    io.select_model(
+        cfg,
+        on_select=lambda model_dir: test_model(model_dir),
+        button_text="Test Model"
+    )

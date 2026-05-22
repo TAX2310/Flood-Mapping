@@ -1,6 +1,10 @@
+import json
 from pathlib import Path
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+import ipywidgets as widgets
+from IPython.display import display, clear_output
 
 import src.util.io as io
 
@@ -19,11 +23,15 @@ def plot_train_val_loss(model_dir, save_path=None):
     """
 
     csv_path = Path(model_dir) / "metrics.csv"
-    config_path = Path(model_dir) / "config.json"
 
-    cfg = io.load_config_json(config_path)
+    summary_path = Path(model_dir) / "summary.json"
 
-    title = f'Train Val Loss - lr_{cfg.LR}__bs_{cfg.BATCH_SIZE}__e_{cfg.EPOCHS}'
+    if summary_path.exists():
+        with open(summary_path, "r") as f:
+            summary = json.load(f)
+        title = f'{summary["title"]} - Train Val Loss'
+    else:
+        title = f'Train Val Loss - training in progress...'
 
     if not csv_path.exists():
         raise FileNotFoundError(f"Metrics CSV not found: {csv_path}")
@@ -53,10 +61,6 @@ def plot_train_val_loss(model_dir, save_path=None):
 
     plt.show()
 
-from pathlib import Path
-import pandas as pd
-import matplotlib.pyplot as plt
-
 
 def plot_precision_recall(model_dir, save_path=None):
     """
@@ -64,11 +68,14 @@ def plot_precision_recall(model_dir, save_path=None):
     """
 
     csv_path = Path(model_dir) / "metrics.csv"
-    config_path = Path(model_dir) / "config.json"
+    summary_path = Path(model_dir) / "summary.json"
 
-    cfg = io.load_config_json(config_path)
-
-    title = f'Precision Recall - lr_{cfg.LR}__bs_{cfg.BATCH_SIZE}__e_{cfg.EPOCHS}'
+    if summary_path.exists():
+        with open(summary_path, "r") as f:
+            summary = json.load(f)
+        title = f'{summary["title"]} - Precision Recall'
+    else:
+        title = f'Precision Recall - training in progress...'
 
     if not csv_path.exists():
         raise FileNotFoundError(f"Metrics CSV not found: {csv_path}")
@@ -106,11 +113,14 @@ def plot_iou_f1(model_dir, save_path=None):
     """
 
     csv_path = Path(model_dir) / "metrics.csv"
-    config_path = Path(model_dir) / "config.json"
+    summary_path = Path(model_dir) / "summary.json"
 
-    cfg = io.load_config_json(config_path)
-
-    title = f'IoU F1 - lr_{cfg.LR}__bs_{cfg.BATCH_SIZE}__e_{cfg.EPOCHS}'
+    if summary_path.exists():
+        with open(summary_path, "r") as f:
+            summary = json.load(f)
+        title = f'{summary["title"]} - IoU F1'
+    else:
+        title = f'IoU F1 - training in progress...'
 
     if not csv_path.exists():
         raise FileNotFoundError(f"Metrics CSV not found: {csv_path}")
@@ -140,3 +150,86 @@ def plot_iou_f1(model_dir, save_path=None):
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
 
     plt.show()
+
+def view_training_metrics(cfg):
+    io.select_model(
+        cfg,
+        on_select=lambda model_dir: plot_metrics(model_dir),
+        button_text="Plot metrics"
+    )
+
+def plot_f1_iou_bar(title, models, f1_scores, iou_scores, figsize=(12, 5)):
+    x = np.arange(len(models))
+    width = 0.35
+
+    plt.figure(figsize=figsize)
+
+    bars_iou = plt.bar(x - width / 2, iou_scores, width, label="IoU", color="blue")
+    bars_f1 = plt.bar(x + width / 2, f1_scores, width, label="F1", color="orange")
+
+    max_iou = max(iou_scores)
+    max_f1 = max(f1_scores)
+
+    # Add IoU values above bars
+    for bar in bars_iou:
+        height = bar.get_height()
+
+        text_color = "red" if height == max_iou else "black"
+
+        plt.text(
+            bar.get_x() + bar.get_width() / 2,
+            height,
+            f"{height:.3f}",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            color=text_color,
+            fontweight="bold" if height == max_iou else "normal"
+        )
+
+    # Add F1 values above bars
+    for bar in bars_f1:
+        height = bar.get_height()
+
+        text_color = "red" if height == max_f1 else "black"
+
+        plt.text(
+            bar.get_x() + bar.get_width() / 2,
+            height,
+            f"{height:.3f}",
+            ha="center",
+            va="bottom",
+            fontsize=9,
+            color=text_color,
+            fontweight="bold" if height == max_f1 else "normal"
+        )
+
+    plt.xticks(x, models, rotation=45, ha="right")
+    plt.ylabel("Score")
+    plt.ylim(0, 1.05)
+    plt.title(title)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+def view_f1_iou_bar(cfg):
+    root_dir = cfg.EXP_DIR / cfg.DATASET / cfg.DATA_TYPE
+    title = f"{root_dir.name} Training Performance"
+    subdirs = io.get_leaf_subdirs(root_dir)
+
+    print(f"Found {len(subdirs)} model subdirectories in {root_dir}")
+
+    models = []
+    f1_scores = []
+    iou_scores = []
+    for subdir in subdirs:
+        summary = subdir / "summary.json"
+        if summary.exists():
+            with open(summary, "r") as f:
+                s = json.load(f)
+                models.append(s["title"])
+                f1_scores.append(s["f1"])
+                iou_scores.append(s["iou"])
+
+
+    plot_f1_iou_bar(title, models, f1_scores, iou_scores)

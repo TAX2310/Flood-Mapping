@@ -31,6 +31,16 @@ def is_best(val_metrics, best_metrics, eps=1e-6):
 
 def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu", fusion=False):
     is_train = optimizer is not None
+
+    print("")
+    print("#"*20)
+    if is_train:
+        print("Running training epoch...")
+    else:        
+        print("Running validation epoch...")
+    print("#"*20)
+    print("")
+
     model.train() if is_train else model.eval()
 
     epoch_loss = 0.0
@@ -141,7 +151,7 @@ def train_model(cfg):
     best_epoch = 0
     best_metrics = {}
 
-    early_stopping_patience = 8
+    patience = cfg.PATIENCE
     epochs_without_improvement = 0
     start_epoch = 0
 
@@ -212,10 +222,10 @@ def train_model(cfg):
         else:
             epochs_without_improvement += 1
 
-        if epochs_without_improvement >= early_stopping_patience:
+        if epochs_without_improvement >= patience:
             print(
                 f"Early stopping triggered at epoch {epoch + 1}. "
-                f"No IoU improvement for {early_stopping_patience} epochs."
+                f"No IoU improvement for {patience} epochs."
             )
             break
 
@@ -244,6 +254,7 @@ def train_model(cfg):
         )
 
     io.save_summary({
+        "title": f"{cfg.LR:.0e} LR, {cfg.BATCH_SIZE} BS, {cfg.WEIGHT_DECAY:.0e} WD, {cfg.DROPOUT_RATE:.1f} DR",
         "best_epoch": best_epoch,
         "best_val_loss": best_val_loss,
         **best_metrics,

@@ -169,3 +169,117 @@ def read_mask_tif(path):
         arr = src.read(1)  # numpy [H,W]
 
     return torch.from_numpy(arr).long()
+
+def get_leaf_subdirs(root_dir):
+    root_dir = Path(root_dir)
+
+    return [
+        p for p in root_dir.rglob("*")
+        if p.is_dir() and not any(child.is_dir() for child in p.iterdir())
+    ]
+
+import ipywidgets as widgets
+from IPython.display import display, clear_output
+
+def select_model(cfg, on_select, button_text="Run", description="Model:"):
+    root_dir = cfg.EXP_DIR / cfg.DATASET / cfg.DATA_TYPE
+    subdirs = get_leaf_subdirs(root_dir)
+
+    if not subdirs:
+        raise ValueError(f"No model directories found in {root_dir}")
+
+    dropdown = widgets.Dropdown(
+        options=subdirs,
+        value=subdirs[0],
+        description=description,
+        layout=widgets.Layout(width="700px"),
+        style={"description_width": "initial"}
+    )
+
+    run_button = widgets.Button(description=button_text)
+    output = widgets.Output()
+
+    def on_click(button):
+        with output:
+            clear_output(wait=True)
+
+            model_dir = cfg.EXP_DIR / dropdown.value
+            on_select(model_dir)
+
+    run_button.on_click(on_click)
+
+    display(dropdown, run_button, output)
+
+    return dropdown, run_button, output
+
+from pathlib import Path
+import numpy as np
+import rasterio
+
+
+def save_prediction_tif(pred_array, reference_tif_path, output_tif_path, dtype="uint8"):
+    """
+    Save a predicted mask/probability map as a GeoTIFF using metadata
+    from a reference image.
+
+    Args:
+        pred_array: 2D numpy array or torch tensor, shape [H, W]
+        reference_tif_path: path to source GeoTIFF to copy metadata from
+        output_tif_path: path to save prediction GeoTIFF
+        dtype: "uint8" for binary masks, "float32" for probability maps
+    """
+
+    reference_tif_path = Path(reference_tif_path)
+    output_tif_path = Path(output_tif_path)
+    output_tif_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Convert torch tensor to numpy if needed
+    if hasattr(pred_array, "detach"):
+        pred_array = pred_array.detach().cpu().numpy()
+
+    pred_array = np.asarray(pred_array)
+
+    # Remove extra dimensions if shape is [1, H, W] or [1, 1, H, W]
+    pred_array = np.squeeze(pred_array)
+
+    if pred_array.ndim != 2:
+        raise ValueError(f"Expected 2D array after squeeze, got shape {pred_array.shape}")
+
+    with rasterio.open(reference_tif_path) as src:
+        profile = src.profile.copy()
+
+    profile.update(
+        count=1,
+        dtype=dtype,
+        compress="lzw",
+        nodata=0 if dtype == "uint8" else None,
+    )
+
+    pred_array = pred_array.astype(dtype)
+
+    with rasterio.open(output_tif_path, "w", **profile) as dst:
+        dst.write(pred_array, 1)
+
+def export_prediction_tifs(results):
+    output_dir = cfg.EXPORT_DIR
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    for result in results:
+        sample_id = result["sample_id"]
+
+        prob_path = output_dir / f"{sample_id}_prob.tif"
+        pred_path = output_dir / f"{sample_id}_pred.tif"
+
+        save_prediction_tif(
+            result["prob"].numpy(),
+            result["reference_path"],
+            prob_path,
+            dtype="float32",
+        )
+
+        save_prediction_tif(
+            result["pred"].numpy(),
+            result["reference_path"],
+            pred_path,
+            dtype="uint8",
+        )

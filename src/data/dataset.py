@@ -51,6 +51,8 @@ class SturmS1Dataset(Dataset):
             "mask": mask.unsqueeze(0).float(),
             "id": item["id"],
             "event_id": item["event_id"],
+            "image_path": item["image_path"],
+            "mask_path": item["mask_path"],
         }
     
 class SturmS2Dataset(Dataset):

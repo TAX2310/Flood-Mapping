@@ -50,9 +50,10 @@ class SturmS1Dataset(Dataset):
             "image": image.float(),
             "mask": mask.unsqueeze(0).float(),
             "id": item["id"],
+            "sample_id": item["sample_id"],
             "event_id": item["event_id"],
-            "image_path": item["image_path"],
-            "mask_path": item["mask_path"],
+            "image_path": str(item["image_path"]),
+            "mask_path": str(item["mask_path"]),
         }
     
 class SturmS2Dataset(Dataset):
@@ -99,7 +100,10 @@ class SturmS2Dataset(Dataset):
             "image": image.float(),
             "mask": mask.unsqueeze(0).float(),
             "id": item["id"],
+            "sample_id": item["sample_id"],
             "event_id": item["event_id"],
+            "image_path": str(item["image_path"]),
+            "mask_path": str(item["mask_path"]),
         }
     
 class SturmFusionDataset(Dataset):
@@ -153,5 +157,9 @@ class SturmFusionDataset(Dataset):
             "s2_image": s2_image.float(),
             "mask": mask.unsqueeze(0).float(),
             "id": item["id"],
+            "sample_id": item["sample_id"],
             "event_id": item["event_id"],
+            "s1_image_path": str(item["s1_image_path"]),
+            "s2_image_path": str(item["s2_image_path"]),
+            "mask_path": str(item["mask_path"]),
         }

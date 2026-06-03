@@ -72,6 +72,8 @@ def test_model(model_dir):
         return
 
     cfg = io.load_config_pickle(config_path)
+
+    cfg.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
     model = models.get_model(cfg).to(cfg.DEVICE)
 

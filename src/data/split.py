@@ -33,12 +33,14 @@ def build_s2_index(cfg):
 
     samples = []
     for i, row in df.iterrows():
+        sample_id = row["tile_id"]
         event_id = row["ems_code"]
         img_path = image_dir / row["tile_id"]
         mask_path = mask_dir / row["tile_id"]
 
         samples.append({
             "id": i,
+            "sample_id": sample_id,
             "event_id": event_id,
             "image_path": img_path,
             "mask_path": mask_path,
@@ -55,6 +57,7 @@ def build_fusion_index(cfg):
 
     samples = []
     for i, row in df.iterrows():
+        sample_id = row["tile_id"]
         event_id = row["ems_code"]
         s1_img_path = s1_image_dir / row["tile_id"]
         s2_img_path = s2_image_dir / row["tile_id"]
@@ -62,6 +65,7 @@ def build_fusion_index(cfg):
 
         samples.append({
             "id": i,
+            "sample_id": sample_id,
             "event_id": event_id,
             "s1_image_path": s1_img_path,
             "s2_image_path": s2_img_path,

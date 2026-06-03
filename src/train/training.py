@@ -271,8 +271,8 @@ def train_model(cfg):
 
     return model, history
 
-def train_from_file(cfg):
-    cfg.NUM_WORKERS = 2
+def train_from_file(cfg, num_workers=2):
+    cfg.NUM_WORKERS = num_workers
 
     cfg_path = cfg.ROOT / "tmp_config.pkl"
     io.save_config_pickle(cfg, cfg_path)

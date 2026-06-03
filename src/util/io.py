@@ -260,15 +260,15 @@ def save_prediction_tif(pred_array, reference_tif_path, output_tif_path, dtype="
     with rasterio.open(output_tif_path, "w", **profile) as dst:
         dst.write(pred_array, 1)
 
-def export_prediction_tifs(results):
-    output_dir = cfg.EXPORT_DIR
+def export_prediction_tifs(results, output_dir):
+    output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     for result in results:
         sample_id = result["sample_id"]
 
-        prob_path = output_dir / f"{sample_id}_prob.tif"
-        pred_path = output_dir / f"{sample_id}_pred.tif"
+        prob_path = output_dir / "probability" / f"{sample_id}"
+        pred_path = output_dir / "prediction" / f"{sample_id}"
 
         save_prediction_tif(
             result["prob"].numpy(),
@@ -283,3 +283,32 @@ def export_prediction_tifs(results):
             pred_path,
             dtype="uint8",
         )
+
+
+def save_inference_results(results, save_path):
+    """
+    Save inference results containing tensors, strings, paths and metrics.
+    """
+    save_path = Path(save_path)
+    save_path.parent.mkdir(parents=True, exist_ok=True)
+
+    torch.save(results, save_path)
+
+    print(f"Saved {len(results)} results to: {save_path}")
+
+
+def load_inference_results(load_path, map_location="cpu"):
+    """
+    Load inference results saved with save_inference_results().
+    map_location='cpu' avoids GPU dependency when reloading later.
+    """
+    load_path = Path(load_path)
+
+    if not load_path.exists():
+        raise FileNotFoundError(f"Could not find results file: {load_path}")
+
+    results = torch.load(load_path, map_location=map_location)
+
+    print(f"Loaded {len(results)} results from: {load_path}")
+
+    return results

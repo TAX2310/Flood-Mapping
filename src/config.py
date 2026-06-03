@@ -77,6 +77,18 @@ class CFG:
     @property
     def EXPORT_DIR(self) -> Path:
         return self.ROOT / "exports"
+    
+    @property
+    def S1_MODEL(self) -> Path:
+        return self.EXP_DIR / "STURM-fusion-24/Sentinel1_SAR/lr_0.001/bs_32/wd_1e-05/dr_0.0"
+    
+    @property
+    def S2_MODEL(self) -> Path:
+        return self.EXP_DIR / "STURM-fusion-24/Sentinel2_Optical/lr_0.001/bs_64/wd_1e-05/dr_0.2"
+    
+    @property
+    def FUSION_MODEL(self) -> Path:
+        return self.EXP_DIR / "STURM-fusion-24/Fusion_SAR_Optical/lr_0.001/bs_64/wd_1e-05/dr_0.2"
 
 @dataclass
 class S1_CFG(CFG):

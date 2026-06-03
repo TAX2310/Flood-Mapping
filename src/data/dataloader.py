@@ -123,22 +123,38 @@ def make_fusion_dataloaders(cfg):
 
     return train_loader, val_loader, test_loader
 
-def make_inference_dataloader(cfg, samples):
+def make_inference_dataloader(cfg, samples=None):
+    seed.set_seed(cfg.RANDOM_SEED)
 
     if cfg.DATA_TYPE == "Sentinel1_SAR":
         all_samples = split.build_s1_index(cfg)
-        samples = [s for s in all_samples if s["sample_id"] in samples]
-
+        if samples is not None:
+            samples = [s for s in all_samples if s["sample_id"] in samples]
+        else:
+            if cfg.SPLIT_METHOD == "by_event":
+                _, _, samples = split.split_by_event(all_samples, cfg)
+            elif cfg.SPLIT_METHOD == "random":
+                _, _, samples = split.split_random(all_samples, cfg)
         ds = dataset.SturmS1Dataset(samples, cfg, is_train=False, use_rotation=False)
-    elif cfg.DATA_TYPE == "Sentinel2_MS":
+    elif cfg.DATA_TYPE == "Sentinel2_Optical":
         all_samples = split.build_s2_index(cfg)
-        samples = [s for s in all_samples if s["sample_id"] in samples]
-
+        if samples is not None:
+            samples = [s for s in all_samples if s["sample_id"] in samples]
+        else:
+            if cfg.SPLIT_METHOD == "by_event":
+                _, _, samples = split.split_by_event(all_samples, cfg)
+            elif cfg.SPLIT_METHOD == "random":
+                _, _, samples = split.split_random(all_samples, cfg)
         ds = dataset.SturmS2Dataset(samples, cfg, is_train=False, use_rotation=False)
-    elif cfg.DATA_TYPE == "Fusion":
+    elif cfg.DATA_TYPE == "Fusion_SAR_Optical":
         all_samples = split.build_fusion_index(cfg)
-        samples = [s for s in all_samples if s["sample_id"] in samples]
-
+        if samples is not None:
+            samples = [s for s in all_samples if s["sample_id"] in samples]
+        else:
+            if cfg.SPLIT_METHOD == "by_event":
+                _, _, samples = split.split_by_event(all_samples, cfg)
+            elif cfg.SPLIT_METHOD == "random":
+                _, _, samples = split.split_random(all_samples, cfg)
         ds = dataset.SturmFusionDataset(samples, cfg, is_train=False, use_rotation=False)
     else:
         raise ValueError(f"Unsupported DATA_TYPE: {cfg.DATA_TYPE}")

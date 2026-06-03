@@ -3,3 +3,6 @@ __pycache__/
 /notes.txt
 /experiments
 /tmp_config.pkl
+/exports
+/test_results
+tmp_config.pkl

@@ -13,7 +13,7 @@ import src.models.models as models
 import src.util.metrics as metrics 
 import src.util.io as io
 
-def run_epoch(model, dataloader, loss_fn, device="cpu", fusion=False):
+def run_epoch(model, dataloader, loss_fn, device="cpu", fusion=False, threshold=0.5):
 
     model.eval()
 
@@ -43,7 +43,7 @@ def run_epoch(model, dataloader, loss_fn, device="cpu", fusion=False):
 
         epoch_loss += loss.item() * batch_size
 
-        batch_metrics = metrics.metrics_from_logits(outputs, masks)
+        batch_metrics = metrics.metrics_from_logits(outputs, masks, threshold=threshold)
         all_metrics.append(batch_metrics)
 
         progress_bar.set_postfix({
@@ -59,7 +59,7 @@ def run_epoch(model, dataloader, loss_fn, device="cpu", fusion=False):
 
     return avg_loss, avg_metrics
 
-def test_model(model_dir):
+def test_model(cfg, model_dir):
 
     model_dir = Path(model_dir)
     print(f"Model directory: {model_dir}")
@@ -71,7 +71,11 @@ def test_model(model_dir):
         print("Model checkpoint or config not found.")
         return
 
+    threshold = cfg.THRESHOLD
+
     cfg = io.load_config_pickle(config_path)
+
+    cfg.THRESHOLD = threshold
 
     cfg.DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         
@@ -94,7 +98,8 @@ def test_model(model_dir):
         test_loader,
         loss_fn,
         device=cfg.DEVICE,
-        fusion=True if cfg.DATA_TYPE == "Fusion_SAR_Optical" else False
+        fusion=True if cfg.DATA_TYPE == "Fusion_SAR_Optical" else False,
+        threshold=cfg.THRESHOLD
     )
 
     print(f"Test Loss: {test_loss:.4f}")
@@ -119,6 +124,6 @@ def test_model(model_dir):
 def select_model_to_test(cfg):
     io.select_model(
         cfg,
-        on_select=lambda model_dir: test_model(model_dir),
+        on_select=lambda model_dir: test_model(cfg, model_dir),
         button_text="Test Model"
     )

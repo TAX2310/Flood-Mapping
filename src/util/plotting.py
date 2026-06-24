@@ -165,24 +165,18 @@ def view_training_metrics(cfg):
         button_text="Plot metrics"
     )
 
-def plot_f1_iou_bar(title, models, f1_scores, iou_scores, figsize=(12, 5)):
+def plot_f1_iou_bar(title, models, f1_scores, iou_scores, figsize=(12, 5), save_path=None):
     x = np.arange(len(models))
     width = 0.35
-
     plt.figure(figsize=figsize)
-
-    bars_iou = plt.bar(x - width / 2, iou_scores, width, label="IoU", color="blue")
-    bars_f1 = plt.bar(x + width / 2, f1_scores, width, label="F1", color="orange")
-
+    bars_iou = plt.bar(x - width / 2, iou_scores, width, label="IoU", color="C0")
+    bars_f1 = plt.bar(x + width / 2, f1_scores, width, label="F1", color="C1")
     max_iou = max(iou_scores)
     max_f1 = max(f1_scores)
-
     # Add IoU values above bars
     for bar in bars_iou:
         height = bar.get_height()
-
         text_color = "red" if height == max_iou else "black"
-
         plt.text(
             bar.get_x() + bar.get_width() / 2,
             height,
@@ -193,13 +187,10 @@ def plot_f1_iou_bar(title, models, f1_scores, iou_scores, figsize=(12, 5)):
             color=text_color,
             fontweight="bold" if height == max_iou else "normal"
         )
-
     # Add F1 values above bars
     for bar in bars_f1:
         height = bar.get_height()
-
         text_color = "red" if height == max_f1 else "black"
-
         plt.text(
             bar.get_x() + bar.get_width() / 2,
             height,
@@ -210,13 +201,15 @@ def plot_f1_iou_bar(title, models, f1_scores, iou_scores, figsize=(12, 5)):
             color=text_color,
             fontweight="bold" if height == max_f1 else "normal"
         )
-
     plt.xticks(x, models, rotation=45, ha="right")
     plt.ylabel("Score")
     plt.ylim(0, 1.05)
     plt.title(title)
     plt.legend()
+    plt.grid(True, axis="y", alpha=0.3)
     plt.tight_layout()
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.show()
 
 def view_f1_iou_bar(cfg):
@@ -588,66 +581,264 @@ def plot_fusion_results(results, figsize=(7,7)):
         plot_fp_fn_mask_tensor(mask, pred, title="FP/FN Comparison", figsize=figsize)
         plot_prob_tensor(prob, title="Predicted Probability", figsize=figsize)
 
-def plot_metric_distribution(
-    results,
+def plot_metric_distribution_from_csv(
+    results_csv,
     metric="iou",
     bins=20,
     title=None,
     figsize=(8, 5),
-    show_stats=True
+    show_stats=True,
+    save_path=None,
 ):
-    """
-    Plot the distribution of a metric from a list of result dictionaries.
-
-    Parameters
-    ----------
-    results : list[dict] or pd.DataFrame
-        Inference results containing metrics such as iou, f1, precision, recall.
-    metric : str
-        Metric to plot. Default is "iou".
-    bins : int
-        Number of histogram bins.
-    title : str or None
-        Plot title. If None, a default title is used.
-    figsize : tuple
-        Figure size.
-    show_stats : bool
-        Whether to show mean and median lines.
-    """
-
-    # Convert list of dictionaries to DataFrame if needed
-    if isinstance(results, list):
-        df = pd.DataFrame(results)
-    else:
-        df = results.copy()
-
+    results_csv = Path(results_csv)
+    df = pd.read_csv(results_csv)
     if metric not in df.columns:
-        raise ValueError(f"Metric '{metric}' not found in results.")
-
-    values = df[metric].dropna()
-
+        raise ValueError(
+            f"Metric '{metric}' not found in CSV. "
+            f"Available columns: {list(df.columns)}"
+        )
+    values = pd.to_numeric(df[metric], errors="coerce").dropna()
     plt.figure(figsize=figsize)
-
     plt.hist(
         values,
         bins=bins,
-        edgecolor="black"
+        color="C0",
+        edgecolor="black",
+        alpha=0.75,
+        label="Samples",
     )
-
     if show_stats:
         mean_value = values.mean()
         median_value = values.median()
-
-        plt.axvline(mean_value, linestyle="--", linewidth=2, label=f"Mean: {mean_value:.3f}")
-        plt.axvline(median_value, linestyle=":", linewidth=2, label=f"Median: {median_value:.3f}")
+        std_value = values.std()
+        plt.axvline(
+            mean_value,
+            color="red",
+            linestyle="--",
+            linewidth=2,
+            label=f"Mean = {mean_value:.3f}",
+        )
+        plt.axvline(
+            median_value,
+            color="green",
+            linestyle=":",
+            linewidth=2,
+            label=f"Median = {median_value:.3f}",
+        )
+        # -1 SD
+        plt.axvline(
+            mean_value - std_value,
+            color="purple",
+            linestyle="-.",
+            linewidth=2,
+            label=f"±1 SD = {std_value:.3f}",
+        )
+        # +1 SD, no extra legend label
+        plt.axvline(
+            mean_value + std_value,
+            color="purple",
+            linestyle="-.",
+            linewidth=2,
+        )
         plt.legend()
-
     plt.xlabel(metric.upper())
     plt.ylabel("Number of samples")
-
     if title is None:
         title = f"Distribution of {metric.upper()} scores"
-
     plt.title(title)
     plt.grid(axis="y", alpha=0.3)
+    plt.tight_layout()
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.show()
+
+def plot_iou_vs_flood_scatter(
+    csv_paths,
+    iou_col="iou",
+    flood_pixels_col="flood_pixels",
+    total_pixels_col="total_valid_pixels",
+    data_type_col="data_type",
+    figsize=(8, 6),
+    title="Flood coverage vs IoU",
+):
+    """
+    Plot IoU against flood percentage for multiple model result CSVs.
+    Uses dedicated labels, markers, and colours based on data_type.
+    """
+
+    label_map = {
+        "Sentinel1_SAR": "S1",
+        "Sentinel2_Optical": "S2",
+        "Fusion_SAR_Optical": "Fusion",
+    }
+
+    marker_map = {
+        "S1": "o",
+        "S2": "^",
+        "Fusion": "*",
+    }
+
+    color_map = {
+        "S1": "blue",
+        "S2": "orange",
+        "Fusion": "green",
+    }
+
+    plt.figure(figsize=figsize)
+
+    for csv_path in csv_paths:
+        df = pd.read_csv(csv_path)
+
+        if data_type_col not in df.columns:
+            raise ValueError(f"'{data_type_col}' column not found in {csv_path}")
+
+        data_type = df[data_type_col].iloc[0]
+        label = label_map.get(data_type, data_type)
+
+        marker = marker_map.get(label, "o")
+        color = color_map.get(label, None)
+
+        df["flood_percentage"] = (
+            df[flood_pixels_col] / df[total_pixels_col]
+        ) * 100
+
+        plt.scatter(
+            df["flood_percentage"],
+            df[iou_col],
+            label=label,
+            marker=marker,
+            color=color,
+            alpha=0.7,
+        )
+
+    plt.xlabel("Flood coverage (%)")
+    plt.ylabel("IoU")
+    plt.title(title)
+    plt.grid(alpha=0.3)
+    plt.legend(title="Model")
+    plt.show()
+
+def plot_average_iou_per_event(
+    results_csv,
+    event_col="ems_code",
+    iou_col="iou",
+    figsize=(12, 5),
+    title="Average IoU per EMSR event",
+    sort=True,
+    save_path=None,
+):
+    """
+    Plot average IoU per EMSR event from one test results CSV.
+    """
+    df = pd.read_csv(Path(results_csv))
+    event_iou = (
+        df.groupby(event_col)[iou_col]
+        .mean()
+        .reset_index()
+        .rename(columns={event_col: "event_id", iou_col: "mean_iou"})
+    )
+    if sort:
+        event_iou = event_iou.sort_values("mean_iou")
+    plt.figure(figsize=figsize)
+    bars = plt.bar(
+        event_iou["event_id"],
+        event_iou["mean_iou"],
+        color="C0",
+        edgecolor="black",
+    )
+    for bar in bars:
+        height = bar.get_height()
+        plt.text(
+            bar.get_x() + bar.get_width() / 2,
+            height,
+            f"{height:.3f}",
+            ha="center",
+            va="bottom",
+            fontsize=8,
+        )
+    plt.xlabel("EMSR event")
+    plt.ylabel("Average IoU")
+    plt.title(title)
+    plt.xticks(rotation=45, ha="right")
+    plt.ylim(0, 1)
+    plt.grid(axis="y", alpha=0.3)
+    plt.tight_layout()
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.show()
+    return event_iou
+
+def plot_fusion_improvement_distribution(
+    csv_paths,
+    sample_id_col="tile_id",
+    data_type_col="data_type",
+    iou_col="iou",
+    figsize=(8, 5),
+    bins=30,
+    save_path=None,
+):
+    """
+    Plot Fusion IoU improvement over the best single-modality baseline
+    using S1, S2, and Fusion result CSV files.
+    Args:
+        csv_paths: list of CSV paths containing S1, S2, and Fusion results.
+        sample_id_col: column used to match samples.
+        data_type_col: column identifying data type/model.
+        iou_col: IoU column.
+        figsize: plot size.
+        bins: number of histogram bins.
+        save_path: optional path to save the figure.
+    Returns:
+        pd.DataFrame with joined IoU values and improvement column.
+    """
+    label_map = {
+        "Sentinel1_SAR": "s1",
+        "Sentinel2_Optical": "s2",
+        "Fusion_SAR_Optical": "fusion",
+    }
+    dfs = {}
+    for csv_path in csv_paths:
+        df = pd.read_csv(Path(csv_path))
+        if data_type_col not in df.columns:
+            raise ValueError(f"'{data_type_col}' column not found in {csv_path}")
+        data_type = df[data_type_col].iloc[0]
+        model_key = label_map.get(data_type)
+        if model_key is None:
+            raise ValueError(f"Unknown data_type '{data_type}' in {csv_path}")
+        dfs[model_key] = df[[sample_id_col, iou_col]].rename(
+            columns={iou_col: f"{model_key}_iou"}
+        )
+    required = {"s1", "s2", "fusion"}
+    missing = required - set(dfs.keys())
+    if missing:
+        raise ValueError(f"Missing CSVs for: {missing}")
+    agreement_df = (
+        dfs["fusion"]
+        .merge(dfs["s1"], on=sample_id_col, how="inner")
+        .merge(dfs["s2"], on=sample_id_col, how="inner")
+    )
+    agreement_df["best_baseline_iou"] = agreement_df[
+        ["s1_iou", "s2_iou"]
+    ].max(axis=1)
+    agreement_df["fusion_minus_best_baseline"] = (
+        agreement_df["fusion_iou"] - agreement_df["best_baseline_iou"]
+    )
+    plt.figure(figsize=figsize)
+    plt.hist(
+        agreement_df["fusion_minus_best_baseline"],
+        bins=bins,
+        color="C0",
+        edgecolor="black",
+        alpha=0.75,
+    )
+    plt.axvline(0, color="red", linestyle="--", linewidth=2, label="No change")
+    plt.xlabel("Fusion IoU - best baseline IoU")
+    plt.ylabel("Number of samples")
+    plt.title("Fusion improvement over best single-modality baseline")
+    plt.legend()
+    plt.grid(axis="y", alpha=0.3)
+    plt.tight_layout()
+    if save_path is not None:
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+    plt.show()
+    return agreement_df

@@ -34,6 +34,7 @@ class CFG:
     # Training
     EPOCHS: int = 50
     PATIENCE: int = 8
+    THRESHOLD: float = 0.5
 
     # data augmentation
     USE_ROTATIONS: bool = False
@@ -89,6 +90,18 @@ class CFG:
     @property
     def FUSION_MODEL(self) -> Path:
         return self.EXP_DIR / "STURM-fusion-24/Fusion_SAR_Optical/lr_0.001/bs_64/wd_1e-05/dr_0.2"
+
+    @property
+    def S1_TEST_RESULTS_CSV(self) -> Path:
+        return self.ROOT / "test_results/s1_test_results.csv"
+
+    @property
+    def S2_TEST_RESULTS_CSV(self) -> Path:
+        return self.ROOT / "test_results/s2_test_results.csv"
+
+    @property
+    def FUSION_TEST_RESULTS_CSV(self) -> Path:
+        return self.ROOT / "test_results/fusion_test_results.csv"
 
 @dataclass
 class S1_CFG(CFG):

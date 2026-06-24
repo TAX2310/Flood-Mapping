@@ -29,7 +29,7 @@ def run_inference(model, dataloader, device="cpu", fusion=False, threshold=0.5):
 
             prob = torch.sigmoid(logits)
             pred = (prob >= threshold).to(torch.uint8)
-            metric = metrics.metrics_from_logits(logits, mask)
+            metric = metrics.metrics_from_logits(logits, mask, threshold=threshold)
 
         if fusion:
             results.append({
@@ -81,7 +81,11 @@ def inference(cfg, model_dir, samples=None, export=False):
 
     inference_loader = dataloader.make_inference_dataloader(cfg, samples)
 
-    results = run_inference(model, inference_loader, device=cfg.DEVICE, fusion=True if cfg.DATA_TYPE=="Fusion_SAR_Optical" else False)
+    results = run_inference(model, 
+                            inference_loader, 
+                            device=cfg.DEVICE, 
+                            fusion=True if cfg.DATA_TYPE=="Fusion_SAR_Optical" else False, 
+                            threshold=cfg.THRESHOLD)
     
     if export:
         io.export_prediction_tifs(results, cfg.EXPORT_DIR)

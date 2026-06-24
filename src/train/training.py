@@ -29,7 +29,7 @@ def is_best(val_metrics, best_metrics, eps=1e-6):
 
     return False
 
-def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu", fusion=False):
+def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu", fusion=False, threshold=0.5):
     is_train = optimizer is not None
 
     print("")
@@ -80,7 +80,7 @@ def run_epoch(model, dataloader, loss_fn, optimizer=None, device="cpu", fusion=F
         epoch_loss += loss.item() * batch_size
 
         if not is_train:
-            batch_metrics = metrics_from_logits(outputs, masks)
+            batch_metrics = metrics_from_logits(outputs, masks, threshold=threshold)
             all_metrics.append(batch_metrics)
 
         progress_bar.set_postfix({
@@ -187,7 +187,8 @@ def train_model(cfg):
             loss_fn,
             optimizer,
             device=cfg.DEVICE,
-            fusion=True if cfg.DATA_TYPE == "Fusion_SAR_Optical" else False
+            fusion=True if cfg.DATA_TYPE == "Fusion_SAR_Optical" else False,
+            threshold=cfg.THRESHOLD
         )
 
         val_loss, val_metrics = run_epoch(
@@ -196,7 +197,8 @@ def train_model(cfg):
             loss_fn,
             optimizer=None,
             device=cfg.DEVICE,
-            fusion=True if cfg.DATA_TYPE == "Fusion_SAR_Optical" else False
+            fusion=True if cfg.DATA_TYPE == "Fusion_SAR_Optical" else False,
+            threshold=cfg.THRESHOLD
         )
 
         scheduler.step(val_loss)

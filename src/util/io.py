@@ -1,5 +1,6 @@
 import json
 import csv
+import pandas as pd
 from src.util import metrics
 import torch
 from pathlib import Path
@@ -9,6 +10,7 @@ import pickle
 from types import SimpleNamespace
 
 from src.config import CFG
+import src.util.metrics as metrics
 
 def save_config(cfg, path):
     path = Path(path)
@@ -312,3 +314,71 @@ def load_inference_results(load_path, map_location="cpu"):
     print(f"Loaded {len(results)} results from: {load_path}")
 
     return results
+
+def create_test_results_csv(cfg, results, metadata_csv, output_csv, sample_id_key="sample_id", metadata_tile_key="tile_id"):
+    """
+    Create a test results CSV by joining inference results with metadata.
+
+    Args:
+        results: list of dictionaries from inference.
+        metadata_csv: path to metadata CSV.
+        output_csv: path to save test results CSV.
+        sample_id_key: key in results containing the sample id.
+        metadata_tile_key: column in metadata containing the tile id.
+
+    Returns:
+        pd.DataFrame: combined test results dataframe.
+    """
+
+    metadata_csv = Path(metadata_csv)
+    output_csv = Path(output_csv)
+
+    metadata_df = pd.read_csv(metadata_csv)
+
+    rows = []
+
+    for item in results:
+      
+        sample_id = item[sample_id_key]
+
+        # If sample_id is stored as a list/tensor-like object, clean it
+        if isinstance(sample_id, (list, tuple)):
+            sample_id = sample_id[0]
+
+        sample_id = str(sample_id)
+
+        matched_rows = metadata_df[metadata_df[metadata_tile_key] == sample_id]
+
+        if matched_rows.empty:
+            print(f"Warning: no metadata match found for {sample_id}")
+            continue
+
+        metadata_row = matched_rows.iloc[0].to_dict()
+
+        mask_path = Path(cfg.MASK_PATH / item["sample_id"])
+
+        pixel_row = metrics.count_mask_pixels(mask_path)
+
+        result_row = {
+            "data_type": cfg.DATA_TYPE,
+            "accuracy": item.get("accuracy"),
+            "precision": item.get("precision"),
+            "recall": item.get("recall"),
+            "f1": item.get("f1"),
+            "iou": item.get("iou"),
+        }
+
+        combined_row = {
+            **metadata_row,
+            **result_row,
+            **pixel_row,
+        }
+
+        rows.append(combined_row)
+
+    test_results_df = pd.DataFrame(rows)
+
+    output_csv.parent.mkdir(parents=True, exist_ok=True)
+    test_results_df.to_csv(output_csv, index=False)
+
+    return test_results_df

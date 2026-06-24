@@ -1,12 +1,13 @@
 import torch
 import json
+import numpy as np
+import rasterio
 
 def metrics_from_logits(logits, masks, threshold=0.5, eps=1e-7):
     """
     logits: [B, 1, H, W]
     masks:  [B, 1, H, W]
     """
-
     probs = torch.sigmoid(logits)
     preds = (probs > threshold).float()
     masks = masks.float()
@@ -111,3 +112,41 @@ def results_not_in_other_by_sample_id(list_a, list_b):
         sample for sample in list_a
         if sample["sample_id"] not in ids_b
     ]
+
+def count_mask_pixels(
+    mask_path,
+    water_classes=(1, 2, 3, 4, 5),
+    ignore_classes=(99,),
+    non_water_class=0,
+):
+    """
+    Count flood/water and non-flood/non-water pixels in a mask GeoTIFF.
+
+    Args:
+        mask_path: Path to mask .tif file.
+        water_classes: Classes treated as flood/water.
+        ignore_classes: Classes excluded from counting.
+        non_water_class: Class treated as non-flood/non-water.
+
+    Returns:
+        dict with flood_pixels, non_flood_pixels, ignored_pixels, total_valid_pixels.
+    """
+
+    with rasterio.open(mask_path) as src:
+        mask = src.read(1)
+
+    flood_mask = np.isin(mask, water_classes)
+    non_flood_mask = mask == non_water_class
+    ignore_mask = np.isin(mask, ignore_classes)
+
+    flood_pixels = int(np.sum(flood_mask))
+    non_flood_pixels = int(np.sum(non_flood_mask))
+    ignored_pixels = int(np.sum(ignore_mask))
+
+    return {
+        "flood_pixels": flood_pixels,
+        "non_flood_pixels": non_flood_pixels,
+        "ignored_pixels": ignored_pixels,
+        "total_valid_pixels": flood_pixels + non_flood_pixels,
+        "flood_pixel_percentage": flood_pixels / (flood_pixels + non_flood_pixels) if (flood_pixels + non_flood_pixels) > 0 else 0.0,
+    }

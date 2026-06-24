@@ -14,9 +14,11 @@ class SturmS1Dataset(Dataset):
         self.use_rotation = use_rotation
 
     def __len__(self):
+        # if rotation is used, the dataset length is multiplied by 4 (for 0, 90, 180, 270 degrees)
         return len(self.samples) * 4 if self.use_rotation else len(self.samples)
 
     def __getitem__(self, idx):
+        # if rotation is used, the index is split into base index and rotation index
         if self.use_rotation:
             base_idx = idx % len(self.samples)
             rot_idx = idx // len(self.samples)
@@ -24,8 +26,10 @@ class SturmS1Dataset(Dataset):
             base_idx = idx
             rot_idx = 0
 
+        # get the sample
         item = self.samples[base_idx]
 
+        # read the image and mask
         image = read_image_tif(item["image_path"])
         mask = read_mask_tif(item["mask_path"])
 
@@ -34,6 +38,7 @@ class SturmS1Dataset(Dataset):
         assert image.shape[1] == self.cfg.IMAGE_SIZE
         assert image.shape[2] == self.cfg.IMAGE_SIZE
 
+        # remap the mask to binary if specified in the config
         if self.cfg.BINARY_MASK:
             mask = remap_mask_to_binary(
                 mask,
@@ -63,10 +68,12 @@ class SturmS2Dataset(Dataset):
         self.is_train = is_train
         self.use_rotation = use_rotation
 
+    # if rotation is used, the dataset length is multiplied by 4 (for 0, 90, 180, 270 degrees)
     def __len__(self):
         return len(self.samples) * 4 if self.use_rotation else len(self.samples)
 
     def __getitem__(self, idx):
+        # if rotation is used, the index is split into base index and rotation index
         if self.use_rotation:
             base_idx = idx % len(self.samples)
             rot_idx = idx // len(self.samples)
@@ -74,8 +81,10 @@ class SturmS2Dataset(Dataset):
             base_idx = idx
             rot_idx = 0
 
+        # get the sample
         item = self.samples[base_idx]
 
+        # read the image and mask
         image = read_image_tif(item["image_path"])
         mask = read_mask_tif(item["mask_path"])
 
@@ -84,6 +93,7 @@ class SturmS2Dataset(Dataset):
         assert image.shape[1] == self.cfg.IMAGE_SIZE
         assert image.shape[2] == self.cfg.IMAGE_SIZE
 
+        # remap the mask to binary if specified in the config
         if self.cfg.BINARY_MASK:
             mask = remap_mask_to_binary(
                 mask,
@@ -113,10 +123,12 @@ class SturmFusionDataset(Dataset):
         self.is_train = is_train
         self.use_rotation = use_rotation
 
+    # if rotation is used, the dataset length is multiplied by 4 (for 0, 90, 180, 270 degrees)
     def __len__(self):
         return len(self.samples) * 4 if self.use_rotation else len(self.samples)
 
     def __getitem__(self, idx):
+        # if rotation is used, the index is split into base index and rotation index
         if self.use_rotation:
             base_idx = idx % len(self.samples)
             rot_idx = idx // len(self.samples)
@@ -124,8 +136,10 @@ class SturmFusionDataset(Dataset):
             base_idx = idx
             rot_idx = 0
 
+        # get the sample
         item = self.samples[base_idx]
 
+        # read the image and mask
         s1_image = read_image_tif(item["s1_image_path"])
         s2_image = read_image_tif(item["s2_image_path"])
         mask = read_mask_tif(item["mask_path"])
@@ -139,6 +153,7 @@ class SturmFusionDataset(Dataset):
         assert s2_image.shape[1] == self.cfg.IMAGE_SIZE
         assert s2_image.shape[2] == self.cfg.IMAGE_SIZE
 
+        # remap the mask to binary if specified in the config
         if self.cfg.BINARY_MASK:
             mask = remap_mask_to_binary(
                 mask,

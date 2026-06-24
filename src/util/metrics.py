@@ -5,18 +5,20 @@ import rasterio
 
 def metrics_from_logits(logits, masks, threshold=0.5, eps=1e-7):
     """
-    logits: [B, 1, H, W]
-    masks:  [B, 1, H, W]
+    Compute metrics from model logits and ground-truth masks.
     """
+    # Convert logits to probabilities and predictions
     probs = torch.sigmoid(logits)
     preds = (probs > threshold).float()
     masks = masks.float()
 
+    # Compute true positives, true negatives, false positives, false negatives
     tp = (preds * masks).sum()
     tn = ((1 - preds) * (1 - masks)).sum()
     fp = (preds * (1 - masks)).sum()
     fn = ((1 - preds) * masks).sum()
 
+    # Compute metrics
     accuracy = (tp + tn) / (tp + tn + fp + fn + eps)
     precision = tp / (tp + fp + eps)
     recall = tp / (tp + fn + eps)
@@ -101,7 +103,7 @@ def intersect_multiple_results_by_sample_id(*lists):
         if sample["sample_id"] in common_ids
     ]
 
-def results_not_in_other_by_sample_id(list_a, list_b):
+def results_not_in_other(list_a, list_b):
     """
     Return samples from list_a that do not appear in list_b.
     Matched by sample_id.
@@ -121,15 +123,6 @@ def count_mask_pixels(
 ):
     """
     Count flood/water and non-flood/non-water pixels in a mask GeoTIFF.
-
-    Args:
-        mask_path: Path to mask .tif file.
-        water_classes: Classes treated as flood/water.
-        ignore_classes: Classes excluded from counting.
-        non_water_class: Class treated as non-flood/non-water.
-
-    Returns:
-        dict with flood_pixels, non_flood_pixels, ignored_pixels, total_valid_pixels.
     """
 
     with rasterio.open(mask_path) as src:

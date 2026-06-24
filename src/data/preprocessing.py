@@ -2,7 +2,7 @@ import torch
 
 def remap_mask_to_binary(mask, water_classes=(1,2,3,4,5), ignore_classes=(99,)):
     """
-    mask: torch.Tensor [H,W] or [B,H,W]
+    Remap a mask to binary classes: water (1) and non-water (0), with an optional ignore class (255).
     """
     out = torch.zeros_like(mask, dtype=torch.long)
 

@@ -2,6 +2,9 @@ import segmentation_models_pytorch as smp
 from src.models.LateFusionUNetResNet34 import LateFusionUNetResNet34
 
 def get_model(cfg):
+    """
+    Returns the model based on the configuration.
+    """
     model_name = cfg.MODEL
     if model_name == "unet_sar":
         return unet_sar(cfg)
@@ -22,45 +25,55 @@ def get_model(cfg):
     
 
 def unet_sar(cfg):
-
+    """
+    Returns a U-Net model for SAR data.
+    """
     model = smp.Unet(
-        encoder_weights=None,           # None for SAR (not RGB ImageNet)
-        in_channels=cfg.CHANNELS,    # Your S1 input (VV, VH)
-        classes=1                       # Binary segmentation output
+        encoder_weights=None,           
+        in_channels=cfg.CHANNELS,    
+        classes=1                       
     )
     return model
 
 def unet_resnet34_sar(cfg):
-
+    """
+    Returns a U-Net model with ResNet34 encoder for SAR data.
+    """
     model = smp.Unet(
-        encoder_name="resnet34",        # ResNet34 encoder
-        encoder_weights=None,           # None for SAR (not RGB ImageNet)
-        in_channels=cfg.CHANNELS,                  # Your S1 input (VV, VH)
-        classes=1                       # Binary segmentation output
+        encoder_name="resnet34",        
+        encoder_weights=None,           
+        in_channels=cfg.CHANNELS,                 
+        classes=1                       
     )
     return model
 
 def unet_plus_plus_sar(cfg):
-
+    """
+    Returns a U-Net++ model for SAR data.
+    """
     model = smp.UnetPlusPlus(
-        encoder_weights=None,           # None for SAR (not RGB ImageNet)
-        in_channels=cfg.CHANNELS,                  # Your S1 input (VV, VH)
-        classes=1                       # Binary segmentation output
+        encoder_weights=None,           
+        in_channels=cfg.CHANNELS,      
+        classes=1                       
     )
     return model
 
 def unet_plus_plus_resnet34_sar(cfg):
-
+    """
+    Returns a U-Net++ model with ResNet34 encoder for SAR data.
+    """
     model = smp.UnetPlusPlus(
-        encoder_name="resnet34",        # ResNet34 encoder
-        encoder_weights=None,           # None for SAR (not RGB ImageNet)
-        in_channels=cfg.CHANNELS,                  # Your S1 input (VV, VH)
-        classes=1                       # Binary segmentation output
+        encoder_name="resnet34",        
+        encoder_weights=None,           
+        in_channels=cfg.CHANNELS,                  
+        classes=1                       
     )
     return model
 
 def unet_optical(cfg):
-
+    """
+    Returns a U-Net model for optical data.
+    """
     model = smp.Unet(
         encoder_weights=None,
         in_channels=cfg.CHANNELS,
@@ -70,17 +83,21 @@ def unet_optical(cfg):
     return model
 
 def unet_resnet34_optical(cfg):
-
+    """
+    Returns a U-Net model with ResNet34 encoder for optical data.
+    """
     model = smp.Unet(
-        encoder_name="resnet34",        # ResNet34 encoder
-        encoder_weights=None,           # None for optical (not RGB ImageNet)
-        in_channels=cfg.CHANNELS,                  # Your S2 input (RGB)
-        classes=1                       # Binary segmentation output
+        encoder_name="resnet34",        
+        encoder_weights=None,           
+        in_channels=cfg.CHANNELS,                  
+        classes=1                       
     )
     return model
 
 def unet_resnet34_fusion(cfg):
-    
+    """
+    Returns a U-Net model with ResNet34 encoder for fusion of SAR and optical data.
+    """
     model = LateFusionUNetResNet34(
         s1_channels=cfg.S1_CHANNELS,
         s2_channels=cfg.S2_CHANNELS,

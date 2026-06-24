@@ -5,9 +5,12 @@ def download_and_extract(cfg):
     data_path = cfg.DATA_PATH
     zip_path = cfg.ZIP_PATH
     sentinel1_dir = cfg.S1_PATH
+    mask_dir = cfg.MASK_PATH
+
+    is_extracted = sentinel1_dir.exists() and mask_dir.exists()
 
     # 2. Download if not already present
-    if not zip_path.exists() and not sentinel1_dir.exists():
+    if not zip_path.exists() and not is_extracted:
         print("⬇️ Downloading dataset...")
         os.system(f"wget -O '{zip_path}' '{cfg.ZIP_URL}'")
     else:
@@ -15,7 +18,7 @@ def download_and_extract(cfg):
 
     # 3. Check if already extracted
 
-    if sentinel1_dir.exists():
+    if is_extracted:
         print("✅ Dataset already extracted, skipping unzip.")
     else:
         print("📦 Extracting dataset...")

@@ -7,10 +7,7 @@ import segmentation_models_pytorch as smp
 
 class LateFusionUNetResNet34(nn.Module):
     """
-    Late feature-fusion U-Net using two ResNet34 encoders:
-    - one encoder for Sentinel-1
-    - one encoder for Sentinel-2
-    - fused encoder features passed into a shared U-Net decoder
+    A late fusion U-Net model with ResNet34 encoders for two input modalities (S1 and S2).
     """
 
     def __init__(
@@ -37,15 +34,14 @@ class LateFusionUNetResNet34(nn.Module):
             weights=encoder_weights,
         )
 
-        # ResNet34 encoder channels usually:
+        # ResNet34 encoder channels:
         # [in_channels, 64, 64, 128, 256, 512]
         s1_encoder_channels = self.s1_encoder.out_channels
         s2_encoder_channels = self.s2_encoder.out_channels
-
         encoder_channels = self.s1_encoder.out_channels
 
-        # After concatenation, channels double.
-        # Use 1x1 convolutions to reduce them back to normal U-Net decoder size.
+
+        # 1x1 convolutions to reduce concatenated channels back to normal U-Net decoder size.
         self.fusion_blocks = nn.ModuleList([
             nn.Sequential(
                 nn.Conv2d(c1 + c2, cf, kernel_size=1),

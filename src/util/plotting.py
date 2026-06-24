@@ -165,7 +165,25 @@ def view_training_metrics(cfg):
         button_text="Plot metrics"
     )
 
-def plot_f1_iou_bar(title, models, f1_scores, iou_scores, figsize=(12, 5), save_path=None):
+def plot_hp_comparison_bar(cfg, figsize=(12, 5), save_path=None):
+    """
+    Plot a bar chart comparing F1 and IoU scores across model subdirectories.
+    """
+    root_dir = cfg.EXP_DIR / cfg.DATASET / cfg.DATA_TYPE
+    title = f"{root_dir.name} Training Performance"
+    subdirs = io.get_leaf_subdirs(root_dir)
+    print(f"Found {len(subdirs)} model subdirectories in {root_dir}")
+
+    models, f1_scores, iou_scores = [], [], []
+    for subdir in subdirs:
+        summary = subdir / "summary.json"
+        if summary.exists():
+            with open(summary, "r") as f:
+                s = json.load(f)
+                models.append(s["title"])
+                f1_scores.append(s["f1"])
+                iou_scores.append(s["iou"])
+
     x = np.arange(len(models))
     width = 0.35
     plt.figure(figsize=figsize)
@@ -173,34 +191,22 @@ def plot_f1_iou_bar(title, models, f1_scores, iou_scores, figsize=(12, 5), save_
     bars_f1 = plt.bar(x + width / 2, f1_scores, width, label="F1", color="C1")
     max_iou = max(iou_scores)
     max_f1 = max(f1_scores)
-    # Add IoU values above bars
-    for bar in bars_iou:
-        height = bar.get_height()
-        text_color = "red" if height == max_iou else "black"
-        plt.text(
-            bar.get_x() + bar.get_width() / 2,
-            height,
-            f"{height:.3f}",
-            ha="center",
-            va="bottom",
-            fontsize=9,
-            color=text_color,
-            fontweight="bold" if height == max_iou else "normal"
-        )
-    # Add F1 values above bars
-    for bar in bars_f1:
-        height = bar.get_height()
-        text_color = "red" if height == max_f1 else "black"
-        plt.text(
-            bar.get_x() + bar.get_width() / 2,
-            height,
-            f"{height:.3f}",
-            ha="center",
-            va="bottom",
-            fontsize=9,
-            color=text_color,
-            fontweight="bold" if height == max_f1 else "normal"
-        )
+
+    for bars, max_val in [(bars_iou, max_iou), (bars_f1, max_f1)]:
+        for bar in bars:
+            height = bar.get_height()
+            is_max = height == max_val
+            plt.text(
+                bar.get_x() + bar.get_width() / 2,
+                height,
+                f"{height:.3f}",
+                ha="center",
+                va="bottom",
+                fontsize=9,
+                color="red" if is_max else "black",
+                fontweight="bold" if is_max else "normal",
+            )
+
     plt.xticks(x, models, rotation=45, ha="right")
     plt.ylabel("Score")
     plt.ylim(0, 1.05)
@@ -212,37 +218,9 @@ def plot_f1_iou_bar(title, models, f1_scores, iou_scores, figsize=(12, 5), save_
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
     plt.show()
 
-def view_f1_iou_bar(cfg):
-    root_dir = cfg.EXP_DIR / cfg.DATASET / cfg.DATA_TYPE
-    title = f"{root_dir.name} Training Performance"
-    subdirs = io.get_leaf_subdirs(root_dir)
-
-    print(f"Found {len(subdirs)} model subdirectories in {root_dir}")
-
-    models = []
-    f1_scores = []
-    iou_scores = []
-    for subdir in subdirs:
-        summary = subdir / "summary.json"
-        if summary.exists():
-            with open(summary, "r") as f:
-                s = json.load(f)
-                models.append(s["title"])
-                f1_scores.append(s["f1"])
-                iou_scores.append(s["iou"])
-
-
-    plot_f1_iou_bar(title, models, f1_scores, iou_scores)
-
 def plot_mask_tif(tif_path, title="Mask", band=1, figsize=(7, 7)):
     """
     Read a mask GeoTIFF and display it.
-
-    Args:
-        tif_path: path to the mask .tif file
-        title: plot title
-        band: raster band to read
-        figsize: matplotlib figure size
     """
 
     with rasterio.open(tif_path) as src:
@@ -261,6 +239,9 @@ def plot_mask_tif(tif_path, title="Mask", band=1, figsize=(7, 7)):
     return mask
 
 def plot_mask_tensor(mask, title="Mask", figsize=(7, 7)):
+    """
+    Display a mask tensor as a grayscale image.
+    """
     if isinstance(mask, torch.Tensor):
         mask = mask.detach().cpu().numpy()
 
@@ -275,6 +256,9 @@ def plot_mask_tensor(mask, title="Mask", figsize=(7, 7)):
     return mask
 
 def plot_fp_fn_mask_tensor(mask, pred, title="FP/FN Mask", figsize=(7, 7)):
+    """
+    Display a mask tensor and predicted mask tensor as a combined FP/FN mask.
+    """
     if isinstance(mask, torch.Tensor):
         mask = mask.detach().cpu().numpy()
 
@@ -318,6 +302,9 @@ def plot_fp_fn_mask_tensor(mask, pred, title="FP/FN Mask", figsize=(7, 7)):
     return fp_fn_mask
 
 def plot_prob_tensor(prob, title="Probability", figsize=(7, 7)):
+    """
+    Display a probability tensor as a grayscale image.
+    """
     if isinstance(prob, torch.Tensor):
         prob = prob.detach().cpu().numpy()
 
@@ -333,13 +320,7 @@ def plot_prob_tensor(prob, title="Probability", figsize=(7, 7)):
 
 def plot_s1_tif(tif_path, title="S1_sar_image", figsize=(7, 7)):
     """
-    Plot S1 GeoTIFF as a single QGIS-like RGB image.
-
-    Fixed rendering:
-        Red   = Band 1
-        Green = Band 2
-        Blue  = empty / zero
-        Stretch = min-max per band
+    Plot S1 GeoTIFF as a single normalised RGB image.
     """
 
     with rasterio.open(tif_path) as src:
@@ -376,17 +357,7 @@ def plot_s1_tif(tif_path, title="S1_sar_image", figsize=(7, 7)):
 
 def plot_s1_tensor(tensor, title="S1 SAR Image", figsize=(7, 7)):
     """
-    Plot S1 tensor as a single QGIS-like RGB image.
-
-    Fixed rendering:
-        Red   = Band 1
-        Green = Band 2
-        Blue  = empty / zero
-        Stretch = min-max per band
-
-    Accepts:
-        [C, H, W]
-        [1, C, H, W]
+    Plot S1 tensor as a single normalised RGB image.
     """
 
     if isinstance(tensor, torch.Tensor):
@@ -425,18 +396,7 @@ def plot_s1_tensor(tensor, title="S1 SAR Image", figsize=(7, 7)):
 
 def plot_s2_tif(tif_path, title="S2 Optical Image", figsize=(7, 7)):
     """
-    Plot Sentinel-2 GeoTIFF as an RGB image.
-
-    Assumes STURM S2 band order:
-        Band 1 = B2 Blue
-        Band 2 = B3 Green
-        Band 3 = B4 Red
-
-    Fixed rendering:
-        Red   = B4
-        Green = B3
-        Blue  = B2
-        Stretch = min-max per band
+    Plot Sentinel-2 GeoTIFF as a normalised RGB image.
     """
 
     with rasterio.open(tif_path) as src:
@@ -476,22 +436,7 @@ def plot_s2_tif(tif_path, title="S2 Optical Image", figsize=(7, 7)):
 
 def plot_s2_tensor(tensor, title="S2 Optical Image", figsize=(7, 7)):
     """
-    Plot Sentinel-2 tensor as an RGB image.
-
-    Assumes STURM S2 band order:
-        Band 1 = B2 Blue
-        Band 2 = B3 Green
-        Band 3 = B4 Red
-
-    Fixed rendering:
-        Red   = B4
-        Green = B3
-        Blue  = B2
-        Stretch = min-max per band
-
-    Accepts:
-        [C, H, W]
-        [1, C, H, W]
+    Plot Sentinel-2 tensor as a normalised RGB image.
     """
 
     if isinstance(tensor, torch.Tensor):
@@ -532,6 +477,9 @@ def plot_s2_tensor(tensor, title="S2 Optical Image", figsize=(7, 7)):
     return image
 
 def plot_s1_results(results, figsize=(7,7)):
+    """
+    Plot S1 results including image, ground truth mask, predicted mask, FP/FN comparison, and probability map.
+    """
     for sample in results:
         for key, value in sample.items():
             print(f"{key}: {value.shape if isinstance(value, torch.Tensor) else value}")
@@ -548,6 +496,9 @@ def plot_s1_results(results, figsize=(7,7)):
         plot_prob_tensor(prob, figsize=figsize)
 
 def plot_s2_results(results, figsize=(7,7)):
+    """
+    Plot Sentinel-2 results including image, ground truth mask, predicted mask, FP/FN comparison, and probability map.
+    """
     for sample in results:
         for key, value in sample.items():
             print(f"{key}: {value.shape if isinstance(value, torch.Tensor) else value}")
@@ -564,6 +515,9 @@ def plot_s2_results(results, figsize=(7,7)):
         plot_prob_tensor(prob, figsize=figsize)
 
 def plot_fusion_results(results, figsize=(7,7)):
+    """
+    Plot Fusion results including S1 image, S2 image, ground truth mask, predicted mask, FP/FN comparison, and probability map.
+    """
     for sample in results:
         for key, value in sample.items():
             print(f"{key}: {value.shape if isinstance(value, torch.Tensor) else value}")
@@ -590,6 +544,9 @@ def plot_metric_distribution_from_csv(
     show_stats=True,
     save_path=None,
 ):
+    """
+    Plot the distribution of a specified metric from a CSV file.
+    """
     results_csv = Path(results_csv)
     df = pd.read_csv(results_csv)
     if metric not in df.columns:
@@ -663,7 +620,6 @@ def plot_iou_vs_flood_scatter(
 ):
     """
     Plot IoU against flood percentage for multiple model result CSVs.
-    Uses dedicated labels, markers, and colours based on data_type.
     """
 
     label_map = {
@@ -728,7 +684,7 @@ def plot_average_iou_per_event(
     save_path=None,
 ):
     """
-    Plot average IoU per EMSR event from one test results CSV.
+    Plot average IoU per EMSR event from results CSV.
     """
     df = pd.read_csv(Path(results_csv))
     event_iou = (
@@ -778,18 +734,7 @@ def plot_fusion_improvement_distribution(
     save_path=None,
 ):
     """
-    Plot Fusion IoU improvement over the best single-modality baseline
-    using S1, S2, and Fusion result CSV files.
-    Args:
-        csv_paths: list of CSV paths containing S1, S2, and Fusion results.
-        sample_id_col: column used to match samples.
-        data_type_col: column identifying data type/model.
-        iou_col: IoU column.
-        figsize: plot size.
-        bins: number of histogram bins.
-        save_path: optional path to save the figure.
-    Returns:
-        pd.DataFrame with joined IoU values and improvement column.
+    Plot Fusion IoU improvement over the best single-modality baseline using result CSV files.
     """
     label_map = {
         "Sentinel1_SAR": "s1",

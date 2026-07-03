@@ -13,7 +13,7 @@ def download_and_extract_dataset(cfg):
     # 2. Download if not already present
     if not dataset_zip_path.exists() and not is_extracted:
         print("Downloading dataset...")
-        os.system(f"wget -O '{dataset_zip_path}' '{cfg.DATASET_ZIP_URL}'")
+        os.system(f"wget --progress=bar:force -O '{dataset_zip_path}' '{cfg.DATASET_ZIP_URL}'")
     else:
         print("Zip or Dataset already exists, skipping download.")
 
@@ -55,7 +55,7 @@ def download_and_extract_results(cfg):
     # 2. Download if not already present
     if not results_zip_path.exists() and not is_extracted:
         print("Downloading results...")
-        os.system(f"wget -O '{results_zip_path}' '{cfg.RESULTS_ZIP_URL}'")
+        os.system(f"wget --progress=bar:force -O '{results_zip_path}' '{cfg.RESULTS_ZIP_URL}'")
     else:
         print("Zip or Results already exists, skipping download.")
 

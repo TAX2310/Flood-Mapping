@@ -47,6 +47,10 @@ class CFG:
     @property
     def DATASET_ZIP_PATH(self) -> Path:
         return self.ROOT / "Dataset.zip"
+    
+    @property
+    def RESULTS_ZIP_PATH(self) -> Path:
+        return self.ROOT / "Results.zip"
 
     @property
     def S1_PATH(self) -> Path:

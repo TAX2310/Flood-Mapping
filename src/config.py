@@ -10,7 +10,8 @@ class CFG:
     DATASET: str = "STURM-fusion-24"
 
     # download
-    ZIP_URL: str = "https://huggingface.co/datasets/tax2310/STURM-fusion-24/resolve/main/Dataset.zip"
+    DATASET_ZIP_URL: str = "https://huggingface.co/datasets/tax2310/STURM-fusion-24/resolve/main/Dataset.zip"
+    DATASET_ZIP_URL: str = "https://huggingface.co/datasets/tax2310/STURM-fusion-24/resolve/main/Results.zip"
 
     # Random Seed 
     RANDOM_SEED: int = 42
@@ -44,7 +45,7 @@ class CFG:
         return self.ROOT / "Dataset"
 
     @property
-    def ZIP_PATH(self) -> Path:
+    def DATASET_ZIP_PATH(self) -> Path:
         return self.ROOT / "Dataset.zip"
 
     @property
@@ -76,8 +77,8 @@ class CFG:
         return self.ROOT / "experiments"
     
     @property
-    def EXPORT_DIR(self) -> Path:
-        return self.ROOT / "exports"
+    def TEST_RESULTS_DIR(self) -> Path:
+        return self.ROOT / "test_results"
     
     @property
     def S1_MODEL(self) -> Path:
@@ -102,6 +103,10 @@ class CFG:
     @property
     def FUSION_TEST_RESULTS_CSV(self) -> Path:
         return self.ROOT / "test_results/fusion_test_results.csv"
+    
+    @property
+    def FIG_EXPORTS_DIR(self) -> Path:
+        return self.ROOT / "fig_exports"
 
 @dataclass
 class S1_CFG(CFG):

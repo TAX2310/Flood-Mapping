@@ -2,6 +2,7 @@ import src.util.seed as seed
 import src.data.split as split
 import src.data.dataset as dataset
 import torch
+from torch.utils.data import DataLoader
 
 def make_s1_dataloaders(cfg):
     # Set random seed for reproducibility

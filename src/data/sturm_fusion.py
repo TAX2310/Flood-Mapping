@@ -7,6 +7,7 @@ def download_and_extract_dataset(cfg):
     sentinel1_dir = cfg.S1_PATH
     mask_dir = cfg.MASK_PATH
 
+    os.makedirs(data_path, exist_ok=True)
     is_extracted = sentinel1_dir.exists() and mask_dir.exists()
 
     # 2. Download if not already present

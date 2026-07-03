@@ -19,7 +19,7 @@ def download_and_extract_dataset(cfg):
     # 2. Download if not already present
     if not dataset_zip_path.exists() and not is_extracted:
         print("Downloading dataset...")
-        wget.download(url, out=str(cfg.Root), bar=bar_progress)
+        wget.download(url, out=str(dataset_zip_path), bar=bar_progress)
     else:
         print("Zip or Dataset already exists, skipping download.")
 
@@ -62,7 +62,7 @@ def download_and_extract_results(cfg):
     # 2. Download if not already present
     if not results_zip_path.exists() and not is_extracted:
         print("Downloading results...")
-        wget.download(url, out=str(cfg.Root), bar=bar_progress)
+        wget.download(url, out=str(results_zip_path), bar=bar_progress)
     else:
         print("Zip or Results already exists, skipping download.")
 

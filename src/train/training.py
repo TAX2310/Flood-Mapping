@@ -311,7 +311,7 @@ def train_model(cfg):
 
     return model, history
 
-def train_from_file(cfg, num_workers=2):
+def train_from_file(cfg, num_workers=8):
     """
     train from python file using subprocess to avoid memory issues with Jupyter Notebook. This function saves the configuration to a temporary pickle file and then runs the training script in a separate process.
     """

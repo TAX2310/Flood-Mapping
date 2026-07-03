@@ -37,6 +37,12 @@ class CFG:
     PATIENCE: int = 8
     THRESHOLD: float = 0.5
 
+    # hyperparameter search space
+    LEARNING_RATES: tuple = (1e-3, 1e-4)
+    BATCH_SIZES: tuple = (32, 64)
+    WEIGHT_DECAYS: tuple = (0.0, 1e-5)
+    DROPOUT_RATES: tuple = (0.0, 0.2)
+
     # data augmentation
     USE_ROTATIONS: bool = False
 

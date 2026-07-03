@@ -64,6 +64,8 @@ root_path = "/content/drive/MyDrive/MSc/Flood-Mapping"
 Dataset_url = "https://huggingface.co/datasets/tax2310/STURM-fusion-24/resolve/main/Dataset.zip"
 mount_drive = False
 clone_repo = False
+download_results = False
+run_training = True
 ```
 
 | Variable | Effect |
@@ -72,6 +74,8 @@ clone_repo = False
 | `clone_repo` | `True` clones `https://github.com/TAX2310/Flood-Mapping.git` into `root_path` if it doesn't already exist there. `False` assumes the repo is already present. |
 | `root_path` | Where the project (code + `Dataset/` + `experiments/`) lives. Only used if `mount_drive=True`. |
 | `Dataset_url` | URL of the dataset zip; passed into the config as `cfg.DATASET_URL`. |
+| `download_results` | `True` also downloads and extracts a pre-computed `Results.zip` (past `experiments/` + `test_results/`) via `SturmFusion.download_and_extract_results(cfg)`, so you can inspect/plot existing runs without training. `False` skips this. |
+| `run_training` | `True` runs the hyperparameter grid search training loop (§4). `False` skips straight to testing/inference/plotting — useful once training is done, or when only `download_results` is needed. |
 
 
 Combinations:
@@ -100,14 +104,22 @@ Key dependency: `segmentation-models-pytorch` (U-Net / U-Net++ encoders + decode
 
 ```python
 import src.data.sturm_fusion as SturmFusion
-data_root = SturmFusion.download_and_extract(cfg)
+data_root = SturmFusion.download_and_extract_dataset(cfg)
+
+if download_results:
+    SturmFusion.download_and_extract_results(cfg)
 ```
 
-`download_and_extract` ([src/data/sturm_fusion.py](src/data/sturm_fusion.py)):
+`download_and_extract_dataset` ([src/data/sturm_fusion.py](src/data/sturm_fusion.py)):
 
 1. Skips downloading if `cfg.S1_PATH` and `cfg.MASK_PATH` already exist, or if the zip is already on disk.
-2. Otherwise `wget`s `cfg.ZIP_URL` to `cfg.ZIP_PATH` and extracts it under `cfg.ROOT`.
+2. Otherwise `wget`s `cfg.DATASET_ZIP_URL` to `cfg.DATASET_ZIP_PATH` and extracts it under `cfg.ROOT`.
 3. Deletes the zip after extraction.
+
+`download_and_extract_results` follows the same download/extract/cleanup pattern for
+`cfg.RESULTS_ZIP_URL` — it populates `experiments/` and `test_results/` with a
+pre-computed set of training runs, skipping the download if those directories already
+exist. Only called when `download_results=True`.
 
 Expected resulting structure under `cfg.DATA_PATH` (`Dataset/`):
 
@@ -137,6 +149,7 @@ Notable fields you may want to change before training:
 | `THRESHOLD` | Sigmoid probability threshold for converting logits → binary prediction |
 | `USE_ROTATIONS` | If `True`, training set is 4x augmented with 90°/180°/270° rotations |
 | `MODEL` | Model name passed to `get_model()`, e.g. `"unet_resnet34_sar"`, `"unet_optical"`, `"unet_resnet34_fusion"` |
+| `LEARNING_RATES`, `BATCH_SIZES`, `WEIGHT_DECAYS`, `DROPOUT_RATES` | The hyperparameter grid search space (tuples on the base `CFG`, shared by all three modalities — edit here rather than in the notebooks) |
 | `LR`, `BATCH_SIZE`, `WEIGHT_DECAY`, `DROPOUT_RATE` | Set per hyperparameter-sweep iteration (see §4) |
 
 Each config also exposes derived `Path` properties (`DATA_PATH`, `S1_PATH`, `S2_PATH`,
@@ -154,25 +167,25 @@ import src.test.testing as testing
 import src.util.io as io
 import src.util.plotting as plot
 
-learning_rates = [1e-3, 1e-4]
-batch_sizes = [32, 64]
-weight_decays = [0.0, 1e-5]
-dropout_rates = [0.0, 0.2]
 num_workers = 8
 
-for learning_rate in learning_rates:
-    for batch_size in batch_sizes:
-        for weight_decay in weight_decays:
-            for dropout_rate in dropout_rates:
-                cfg.LR = learning_rate
-                cfg.BATCH_SIZE = batch_size
-                cfg.WEIGHT_DECAY = weight_decay
-                cfg.DROPOUT_RATE = dropout_rate
-                training.train_from_file(cfg, num_workers=num_workers)
+if run_training:
+    for learning_rate in cfg.LEARNING_RATES:
+        for batch_size in cfg.BATCH_SIZES:
+            for weight_decay in cfg.WEIGHT_DECAYS:
+                for dropout_rate in cfg.DROPOUT_RATES:
+                    cfg.LR = learning_rate
+                    cfg.BATCH_SIZE = batch_size
+                    cfg.WEIGHT_DECAY = weight_decay
+                    cfg.DROPOUT_RATE = dropout_rate
+                    training.train_from_file(cfg, num_workers=num_workers)
 ```
 
-This performs a **grid search** over the four hyperparameter lists (16 combinations by
-default). For each combination:
+This performs a **grid search** over `cfg.LEARNING_RATES` / `cfg.BATCH_SIZES` /
+`cfg.WEIGHT_DECAYS` / `cfg.DROPOUT_RATES` (16 combinations by default — edit these
+tuples in [src/config.py](src/config.py) to change the search space for all three
+notebooks at once). The whole loop is skipped if `run_training=False` (set in the
+Setup cell, §2). For each combination:
 
 1. **`train_from_file(cfg, num_workers)`** ([src/train/training.py](src/train/training.py))
    pickles `cfg` to `tmp_config.pkl` and launches
@@ -327,10 +340,13 @@ shows fusion outperforming the best single modality on each tile.
 
 ## 8. End-to-end checklist
 
-1. Run the **Setup** cell (choose `mount_drive`/`clone_repo` for your environment).
+1. Run the **Setup** cell (choose `mount_drive`/`clone_repo` for your environment, and
+   `download_results`/`run_training` depending on whether you want pre-computed results
+   and/or a fresh training run — §2).
 2. Run **download + extract** and **`pip install -r requirements.txt`**.
-3. Define your hyperparameter grid and run the **training loop** (§4). Re-running is
-   safe — completed combinations are skipped automatically.
+3. If `run_training=True`, edit the hyperparameter grid in `src/config.py` if needed and
+   run the **training loop** (§4). Re-running is safe — completed combinations are
+   skipped automatically.
 4. Use `plot.plot_hp_comparison_bar` / `plot.view_training_metrics` to pick the best run.
 5. `testing.select_model_to_test(cfg)` → select that run → test it.
 6. Run **inference** (§6) on a few samples for a sanity check, then on the full test

@@ -63,6 +63,7 @@ def plot_train_val_loss(model_dir, save_path=None):
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")
@@ -119,6 +120,7 @@ def plot_precision_recall(model_dir, save_path=None):
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")
@@ -175,6 +177,7 @@ def plot_iou_f1(model_dir, save_path=None):
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")
@@ -266,6 +269,7 @@ def plot_hp_comparison_bar(cfg, figsize=(12, 5), save_path=None):
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")
@@ -288,6 +292,7 @@ def plot_mask_tif(tif_path, title="Mask", band=1, figsize=(7, 7), save_path=None
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")
@@ -312,6 +317,7 @@ def plot_mask_tensor(mask, title="Mask", figsize=(7, 7), save_path=None):
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")
@@ -378,6 +384,7 @@ def plot_fp_fn_mask_tensor(
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
@@ -402,6 +409,7 @@ def plot_prob_tensor(prob, title="Probability", figsize=(7, 7), save_path=None):
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
@@ -443,6 +451,7 @@ def plot_s1_tif(tif_path, title="S1_sar_image", figsize=(7, 7), save_path=None):
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
@@ -485,6 +494,7 @@ def plot_s1_tensor(tensor, title="S1 SAR Image", figsize=(7, 7), save_path=None)
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
@@ -529,6 +539,7 @@ def plot_s2_tif(tif_path, title="S2 Optical Image", figsize=(7, 7), save_path=No
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
@@ -575,6 +586,7 @@ def plot_s2_tensor(tensor, title="S2 Optical Image", figsize=(7, 7), save_path=N
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")
@@ -706,6 +718,7 @@ def plot_metric_distribution_from_csv(
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")
@@ -791,6 +804,7 @@ def plot_iou_vs_flood_scatter(
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")
@@ -847,6 +861,7 @@ def plot_average_iou_per_event(
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")
@@ -918,6 +933,7 @@ def plot_fusion_improvement_distribution(
         save_path = Path(save_path)
         if save_path.suffix.lower() != ".pdf":
             save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
         if save_path.exists():
             save_path.unlink()
         plt.savefig(save_path, bbox_inches="tight")

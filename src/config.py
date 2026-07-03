@@ -11,7 +11,7 @@ class CFG:
 
     # download
     DATASET_ZIP_URL: str = "https://huggingface.co/datasets/tax2310/STURM-fusion-24/resolve/main/Dataset.zip"
-    DATASET_ZIP_URL: str = "https://huggingface.co/datasets/tax2310/STURM-fusion-24/resolve/main/Results.zip"
+    RESULTS_ZIP_URL: str = "https://huggingface.co/datasets/tax2310/STURM-fusion-24/resolve/main/Results.zip"
 
     # Random Seed 
     RANDOM_SEED: int = 42

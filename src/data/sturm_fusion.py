@@ -1,7 +1,13 @@
 import zipfile
 import os
+import wget
+
+def bar_progress(current, total, width=80):
+    progress = current / total * 100
+    print(f"\rDownloading: {progress:.1f}% [{current}/{total} bytes]", end="")
 
 def download_and_extract_dataset(cfg):
+    url = cfg.DATASET_ZIP_URL
     data_path = cfg.DATA_PATH
     dataset_zip_path = cfg.DATASET_ZIP_PATH
     sentinel1_dir = cfg.S1_PATH
@@ -13,7 +19,7 @@ def download_and_extract_dataset(cfg):
     # 2. Download if not already present
     if not dataset_zip_path.exists() and not is_extracted:
         print("Downloading dataset...")
-        os.system(f"wget --progress=bar:force -O '{dataset_zip_path}' '{cfg.DATASET_ZIP_URL}'")
+        wget.download(url, bar=bar_progress)
     else:
         print("Zip or Dataset already exists, skipping download.")
 
@@ -46,6 +52,7 @@ def download_and_extract_dataset(cfg):
     return data_path
 
 def download_and_extract_results(cfg):
+    url = cfg.RESULTS_ZIP_URL
     results_zip_path = cfg.RESULTS_ZIP_PATH
     experiments_dir = cfg.EXP_DIR
     test_results_dir = cfg.TEST_RESULTS_DIR
@@ -55,7 +62,7 @@ def download_and_extract_results(cfg):
     # 2. Download if not already present
     if not results_zip_path.exists() and not is_extracted:
         print("Downloading results...")
-        os.system(f"wget --progress=bar:force -O '{results_zip_path}' '{cfg.RESULTS_ZIP_URL}'")
+        wget.download(url, bar=bar_progress)
     else:
         print("Zip or Results already exists, skipping download.")
 

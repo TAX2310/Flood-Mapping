@@ -1,1 +1,2 @@
 segmentation-models-pytorch
+wget

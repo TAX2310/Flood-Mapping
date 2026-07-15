@@ -1,6 +1,8 @@
 from email.mime import image
 import json
 from pathlib import Path
+from pyexpat import model
+from time import sleep
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
@@ -14,7 +16,29 @@ import torch
 
 import src.util.io as io
 
-def plot_train_val_loss(model_dir, save_path=None):
+def plot_controle(fig, save_path=None, show=True, dpi=None):
+    """
+    Save the figure if save_path is given, then either display if show=True or return it if show=False.
+    """
+    if save_path is not None:
+        save_path = Path(save_path)
+        if save_path.suffix.lower() != ".pdf":
+            save_path = save_path.with_suffix(".pdf")
+        save_path.parent.mkdir(parents=True, exist_ok=True)
+        if save_path.exists():
+            save_path.unlink()
+        if dpi is not None:
+            fig.savefig(save_path, dpi=dpi, bbox_inches="tight")
+        else:
+            fig.savefig(save_path, bbox_inches="tight")
+
+    if show:
+        plt.show()
+    else:
+        plt.close(fig)
+        return fig
+
+def plot_train_val_loss(model_dir, save_path=None, show=True):
     """
     Read a metrics CSV and plot train loss vs validation loss.
     """
@@ -30,15 +54,15 @@ def plot_train_val_loss(model_dir, save_path=None):
 
     if not csv_path.exists():
         raise FileNotFoundError(f"Metrics CSV not found: {csv_path}")
-    
+
     df = pd.read_csv(csv_path)
     required_cols = {"epoch", "train_loss", "val_loss"}
     missing = required_cols - set(df.columns)
 
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
-    
-    plt.figure(figsize=(8, 5))
+
+    fig = plt.figure(figsize=(8, 5))
     plt.plot(df["epoch"], df["train_loss"], marker="o", label="Train loss")
     plt.plot(df["epoch"], df["val_loss"], marker="o", label="Validation loss")
     plt.xlabel("Epoch")
@@ -58,19 +82,11 @@ def plot_train_val_loss(model_dir, save_path=None):
     )
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-    plt.show()
+
+    return plot_controle(fig, save_path, show)
 
 
-def plot_precision_recall(model_dir, save_path=None):
+def plot_precision_recall(model_dir, save_path=None, show=True):
     """
     Read a metrics CSV and plot precision vs recall over epochs.
     """
@@ -86,15 +102,15 @@ def plot_precision_recall(model_dir, save_path=None):
 
     if not csv_path.exists():
         raise FileNotFoundError(f"Metrics CSV not found: {csv_path}")
-    
+
     df = pd.read_csv(csv_path)
     required_cols = {"epoch", "precision", "recall"}
     missing = required_cols - set(df.columns)
 
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
-    
-    plt.figure(figsize=(8, 5))
+
+    fig = plt.figure(figsize=(8, 5))
     plt.plot(df["epoch"], df["precision"], marker="o", label="Precision")
     plt.plot(df["epoch"], df["recall"], marker="o", label="Recall")
     plt.xlabel("Epoch")
@@ -116,18 +132,10 @@ def plot_precision_recall(model_dir, save_path=None):
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show)
 
 
-def plot_iou_f1(model_dir, save_path=None):
+def plot_iou_f1(model_dir, save_path=None, show=True):
     """
     Read a metrics CSV and plot IoU vs F1 over epochs.
     """
@@ -143,15 +151,15 @@ def plot_iou_f1(model_dir, save_path=None):
 
     if not csv_path.exists():
         raise FileNotFoundError(f"Metrics CSV not found: {csv_path}")
-    
+
     df = pd.read_csv(csv_path)
     required_cols = {"epoch", "iou", "f1"}
     missing = required_cols - set(df.columns)
 
     if missing:
         raise ValueError(f"Missing required columns: {missing}")
-    
-    plt.figure(figsize=(8, 5))
+
+    fig = plt.figure(figsize=(8, 5))
     plt.plot(df["epoch"], df["iou"], marker="o", label="IoU")
     plt.plot(df["epoch"], df["f1"], marker="o", label="F1 / Dice")
     plt.xlabel("Epoch")
@@ -173,17 +181,9 @@ def plot_iou_f1(model_dir, save_path=None):
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show)
 
-def plot_metrics(cfg, model_dir):
+def plot_metrics(cfg, model_dir, show=True):
     """
     Read a metrics CSV and plot train loss vs validation loss, precision vs recall, and IoU vs F1.
     """
@@ -194,9 +194,14 @@ def plot_metrics(cfg, model_dir):
     elif cfg.DATA_TYPE == "Fusion_SAR_Optical":
         model = "fusion"
 
-    plot_train_val_loss(model_dir, save_path=cfg.FIG_EXPORTS_DIR/(model+"_loss.pdf"))
-    plot_precision_recall(model_dir, save_path=cfg.FIG_EXPORTS_DIR/(model+"_prec_rec.pdf"))
-    plot_iou_f1(model_dir, save_path=cfg.FIG_EXPORTS_DIR/(model+"_iou_f1.pdf"))
+    figs = [
+        plot_train_val_loss(model_dir, save_path=cfg.FIG_EXPORTS_DIR/(model+"_loss.pdf"), show=show),
+        plot_precision_recall(model_dir, save_path=cfg.FIG_EXPORTS_DIR/(model+"_prec_rec.pdf"), show=show),
+        plot_iou_f1(model_dir, save_path=cfg.FIG_EXPORTS_DIR/(model+"_iou_f1.pdf"), show=show),
+    ]
+
+    if not show:
+        return figs
 
 def view_training_metrics(cfg):
     io.select_model(
@@ -205,7 +210,7 @@ def view_training_metrics(cfg):
         button_text="Plot metrics"
     )
 
-def plot_hp_comparison_bar(cfg, figsize=(12, 5), save_path=None):
+def plot_hp_comparison_bar(cfg, figsize=(12, 5), save_path=None, show=True):
     """
     Plot a bar chart comparing F1 and IoU scores across model subdirectories.
     """
@@ -224,7 +229,7 @@ def plot_hp_comparison_bar(cfg, figsize=(12, 5), save_path=None):
                 iou_scores.append(s["iou"])
     x = np.arange(len(models))
     width = 0.35
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
 
     bars_iou = plt.bar(x - width / 2, iou_scores, width, label="IoU", color="C0")
     bars_f1 = plt.bar(x + width / 2, f1_scores, width, label="F1", color="C1")
@@ -265,40 +270,24 @@ def plot_hp_comparison_bar(cfg, figsize=(12, 5), save_path=None):
     plt.grid(True, axis="y", alpha=0.3)
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show)
 
-def plot_mask_tif(tif_path, title="Mask", band=1, figsize=(7, 7), save_path=None):
+def plot_mask_tif(tif_path, title="Mask", band=1, figsize=(7, 7), save_path=None, show=True):
     """
     Read a mask GeoTIFF and display it.
     """
     with rasterio.open(tif_path) as src:
         mask = src.read(band)
 
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     plt.imshow(mask, cmap="gray")
     plt.title(title)
     plt.axis("off")
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show)
 
-def plot_mask_tensor(mask, title="Mask", figsize=(7, 7), save_path=None):
+def plot_mask_tensor(mask, title="Mask", figsize=(7, 7), save_path=None, show=True):
     """
     Display a mask tensor as a grayscale image.
     """
@@ -307,21 +296,13 @@ def plot_mask_tensor(mask, title="Mask", figsize=(7, 7), save_path=None):
 
     mask = np.squeeze(mask)
 
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     plt.imshow(mask, cmap="gray", vmin=0, vmax=1)
     plt.title(title)
     plt.axis("off")
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show)
 
 def plot_fp_fn_mask_tensor(
     mask,
@@ -330,6 +311,7 @@ def plot_fp_fn_mask_tensor(
     figsize=(7, 7),
     show_legend=False,
     save_path=None,
+    show=True,
 ):
     """
     Display a mask tensor and predicted mask tensor as a combined FP/FN mask.
@@ -352,7 +334,7 @@ def plot_fp_fn_mask_tensor(
         [-0.5, 0.5, 1.5, 2.5, 3.5],
         cmap.N
     )
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     plt.imshow(fp_fn_mask, cmap=cmap, norm=norm)
 
     if show_legend:
@@ -380,17 +362,10 @@ def plot_fp_fn_mask_tensor(
     plt.title(title)
     plt.axis("off")
     plt.tight_layout()
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
-    plt.show()
 
-def plot_prob_tensor(prob, title="Probability", figsize=(7, 7), save_path=None):
+    return plot_controle(fig, save_path, show, dpi=300)
+
+def plot_prob_tensor(prob, title="Probability", figsize=(7, 7), save_path=None, show=True):
     """
     Display a probability tensor as a grayscale image.
     """
@@ -399,23 +374,15 @@ def plot_prob_tensor(prob, title="Probability", figsize=(7, 7), save_path=None):
 
     prob = np.squeeze(prob)
 
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     plt.imshow(prob, cmap="gray")
     plt.title(title)
     plt.axis("off")
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show, dpi=300)
 
-def plot_s1_tif(tif_path, title="S1_sar_image", figsize=(7, 7), save_path=None):
+def plot_s1_tif(tif_path, title="S1_sar_image", figsize=(7, 7), save_path=None, show=True):
     """
     Plot S1 GeoTIFF as a single normalised RGB image.
     """
@@ -425,7 +392,7 @@ def plot_s1_tif(tif_path, title="S1_sar_image", figsize=(7, 7), save_path=None):
         raise ValueError(f"Expected shape [C, H, W], got {image.shape}")
     if image.shape[0] < 2:
         raise ValueError("Expected at least 2 bands for S1")
-    
+
     band1 = image[0].astype(np.float32)
     band2 = image[1].astype(np.float32)
 
@@ -441,23 +408,15 @@ def plot_s1_tif(tif_path, title="S1_sar_image", figsize=(7, 7), save_path=None):
 
     rgb = np.dstack([red, green, blue])
 
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     plt.imshow(rgb)
     plt.title(title)
     plt.axis("off")
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show, dpi=300)
 
-def plot_s1_tensor(tensor, title="S1 SAR Image", figsize=(7, 7), save_path=None):
+def plot_s1_tensor(tensor, title="S1 SAR Image", figsize=(7, 7), save_path=None, show=True):
     """
     Plot S1 tensor as a single normalised RGB image.
     """
@@ -468,7 +427,7 @@ def plot_s1_tensor(tensor, title="S1 SAR Image", figsize=(7, 7), save_path=None)
         raise ValueError(f"Expected shape [C, H, W], got {tensor.shape}")
     if tensor.shape[0] < 2:
         raise ValueError("Expected at least 2 bands for S1")
-    
+
     band1 = tensor[0].astype(np.float32)
     band2 = tensor[1].astype(np.float32)
 
@@ -484,23 +443,15 @@ def plot_s1_tensor(tensor, title="S1 SAR Image", figsize=(7, 7), save_path=None)
 
     image = np.dstack([red, green, blue])
 
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     plt.imshow(image)
     plt.title(title)
     plt.axis("off")
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show, dpi=300)
 
-def plot_s2_tif(tif_path, title="S2 Optical Image", figsize=(7, 7), save_path=None):
+def plot_s2_tif(tif_path, title="S2 Optical Image", figsize=(7, 7), save_path=None, show=True):
     """
     Plot Sentinel-2 GeoTIFF as a normalised RGB image.
     """
@@ -510,7 +461,7 @@ def plot_s2_tif(tif_path, title="S2 Optical Image", figsize=(7, 7), save_path=No
         raise ValueError(f"Expected shape [C, H, W], got {image.shape}")
     if image.shape[0] < 3:
         raise ValueError("Expected at least 3 bands for Sentinel-2 RGB")
-    
+
     blue_band = image[0].astype(np.float32)
     green_band = image[1].astype(np.float32)
     red_band = image[2].astype(np.float32)
@@ -529,23 +480,15 @@ def plot_s2_tif(tif_path, title="S2 Optical Image", figsize=(7, 7), save_path=No
 
     image = np.dstack([red, green, blue])
 
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     plt.imshow(image)
     plt.title(title)
     plt.axis("off")
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, dpi=300, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show)
 
-def plot_s2_tensor(tensor, title="S2 Optical Image", figsize=(7, 7), save_path=None):
+def plot_s2_tensor(tensor, title="S2 Optical Image", figsize=(7, 7), save_path=None, show=True):
     """
     Plot Sentinel-2 tensor as a normalised RGB image.
     """
@@ -557,7 +500,7 @@ def plot_s2_tensor(tensor, title="S2 Optical Image", figsize=(7, 7), save_path=N
         raise ValueError(f"Expected shape [C, H, W], got {tensor.shape}")
     if tensor.shape[0] < 3:
         raise ValueError("Expected at least 3 bands for Sentinel-2 RGB")
-    
+
     blue_band = tensor[0].astype(np.float32)
     green_band = tensor[1].astype(np.float32)
     red_band = tensor[2].astype(np.float32)
@@ -576,23 +519,15 @@ def plot_s2_tensor(tensor, title="S2 Optical Image", figsize=(7, 7), save_path=N
 
     image = np.dstack([red, green, blue])
 
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     plt.imshow(image)
     plt.title(title)
     plt.axis("off")
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show)
 
-def plot_sample_results(cfg, results, figsize=(7,7)):
+def plot_sample_results(cfg, results, figsize=(7,7), show=True):
     """
     Plot sample results including image, ground truth mask, predicted mask, FP/FN comparison, and probability map.
     """
@@ -602,6 +537,8 @@ def plot_sample_results(cfg, results, figsize=(7,7)):
         model = "s2"
     else:
         model = "fusion"
+
+    figs = []
 
     for sample in results:
         for key, value in sample.items():
@@ -618,18 +555,27 @@ def plot_sample_results(cfg, results, figsize=(7,7)):
         pred = sample["pred"].cpu()
         prob = sample["prob"].cpu()
 
+        sleep(1)
         if model == "s1":
-            plot_s1_tensor(image, figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR/(f"{sample_id}_s1.pdf"))
+            figs.append(plot_s1_tensor(image, figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR/(f"{sample_id}_s1.pdf"), show=show))
         elif model == "s2":
-            plot_s2_tensor(image, figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR / f"{sample_id}_s2.pdf")
+            figs.append(plot_s2_tensor(image, figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR / f"{sample_id}_s2.pdf", show=show))
         else:
-            plot_s1_tensor(s1_image, title="S1 SAR Image", figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR / f"{sample_id}_s1.pdf")
-            plot_s2_tensor(s2_image, title="S2 Optical Image", figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR / f"{sample_id}_s2.pdf")
-        
-        plot_mask_tensor(mask, title="Ground Truth", figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR/(f"{sample_id}_gt.pdf"))
-        plot_mask_tensor(pred, title="Predicted Mask", figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR/(f"{sample_id}_{model}_pred.pdf"))
-        plot_fp_fn_mask_tensor(mask, pred, figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR/(f"{sample_id}_{model}_fnfp.pdf"))
-        plot_prob_tensor(prob, figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR/(f"{sample_id}_{model}_prob.pdf"))
+            figs.append(plot_s1_tensor(s1_image, title="S1 SAR Image", figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR / f"{sample_id}_s1.pdf", show=show))
+            sleep(1)
+            figs.append(plot_s2_tensor(s2_image, title="S2 Optical Image", figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR / f"{sample_id}_s2.pdf", show=show))
+
+        sleep(1)
+        figs.append(plot_mask_tensor(mask, title="Ground Truth", figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR/(f"{sample_id}_gt.pdf"), show=show))
+        sleep(1)
+        figs.append(plot_mask_tensor(pred, title="Predicted Mask", figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR/(f"{sample_id}_{model}_pred.pdf"), show=show))
+        sleep(1)
+        figs.append(plot_fp_fn_mask_tensor(mask, pred, figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR/(f"{sample_id}_{model}_fnfp.pdf"), show=show))
+        sleep(1)
+        figs.append(plot_prob_tensor(prob, figsize=figsize, save_path=cfg.FIG_EXPORTS_DIR/(f"{sample_id}_{model}_prob.pdf"), show=show))
+
+    if not show:
+        return figs
 
 def plot_metric_distribution_from_csv(
     results_csv,
@@ -639,6 +585,7 @@ def plot_metric_distribution_from_csv(
     figsize=(10, 6),
     show_stats=True,
     save_path=None,
+    show=True,
 ):
     """
     Plot the distribution of a specified metric from a CSV file.
@@ -651,7 +598,7 @@ def plot_metric_distribution_from_csv(
             f"Available columns: {list(df.columns)}"
         )
     values = pd.to_numeric(df[metric], errors="coerce").dropna()
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     plt.hist(
         values,
         bins=bins,
@@ -714,15 +661,7 @@ def plot_metric_distribution_from_csv(
     plt.grid(axis="y", alpha=0.3)
     plt.tight_layout(rect=[0, 0.05, 1, 1])
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show)
 
 def plot_iou_vs_flood_scatter(
     csv_paths,
@@ -734,6 +673,7 @@ def plot_iou_vs_flood_scatter(
     title="Flood coverage vs IoU",
     show_legend=True,
     save_path=None,
+    show=True,
 ):
     """
     Plot IoU against flood percentage for multiple model result CSVs.
@@ -753,7 +693,7 @@ def plot_iou_vs_flood_scatter(
         "S2": "orange",
         "Fusion": "green",
     }
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     for csv_path in csv_paths:
         df = pd.read_csv(csv_path)
         if data_type_col not in df.columns:
@@ -800,15 +740,7 @@ def plot_iou_vs_flood_scatter(
     else:
         plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show)
 
 def plot_average_iou_per_event(
     results_csv,
@@ -818,6 +750,7 @@ def plot_average_iou_per_event(
     title="Average IoU per EMSR event",
     sort=True,
     save_path=None,
+    show=True,
 ):
     """
     Plot average IoU per EMSR event from results CSV.
@@ -831,7 +764,7 @@ def plot_average_iou_per_event(
     )
     if sort:
         event_iou = event_iou.sort_values("mean_iou")
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     bars = plt.bar(
         event_iou["event_id"],
         event_iou["mean_iou"],
@@ -857,16 +790,7 @@ def plot_average_iou_per_event(
     plt.grid(axis="y", alpha=0.3)
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-
-    plt.show()
+    return plot_controle(fig, save_path, show)
 
 def plot_fusion_improvement_distribution(
     csv_paths,
@@ -876,6 +800,7 @@ def plot_fusion_improvement_distribution(
     figsize=(8, 5),
     bins=30,
     save_path=None,
+    show=True,
 ):
     """
     Plot Fusion IoU improvement over the best single-modality baseline using result CSV files.
@@ -913,7 +838,7 @@ def plot_fusion_improvement_distribution(
         agreement_df["fusion_iou"] - agreement_df["best_baseline_iou"]
     )
 
-    plt.figure(figsize=figsize)
+    fig = plt.figure(figsize=figsize)
     plt.hist(
         agreement_df["fusion_minus_best_baseline"],
         bins=bins,
@@ -929,12 +854,4 @@ def plot_fusion_improvement_distribution(
     plt.grid(axis="y", alpha=0.3)
     plt.tight_layout()
 
-    if save_path is not None:
-        save_path = Path(save_path)
-        if save_path.suffix.lower() != ".pdf":
-            save_path = save_path.with_suffix(".pdf")
-        save_path.parent.mkdir(parents=True, exist_ok=True)
-        if save_path.exists():
-            save_path.unlink()
-        plt.savefig(save_path, bbox_inches="tight")
-    plt.show()
+    return plot_controle(fig, save_path, show)

@@ -61,7 +61,6 @@ Every notebook starts with the same **Setup** cell (a Colab form):
 
 ```python
 root_path = "/content/drive/MyDrive/MSc/Flood-Mapping"
-Dataset_url = "https://huggingface.co/datasets/tax2310/STURM-fusion-24/resolve/main/Dataset.zip"
 mount_drive = False
 clone_repo = False
 download_results = False
@@ -73,7 +72,6 @@ run_training = True
 | `mount_drive` | `True` mounts Google Drive at `/content/drive` and uses `root_path` as the project root (persistent storage). `False` works inside the ephemeral Colab/local runtime under `Flood-Mapping/`. |
 | `clone_repo` | `True` clones `https://github.com/TAX2310/Flood-Mapping.git` into `root_path` if it doesn't already exist there. `False` assumes the repo is already present. |
 | `root_path` | Where the project (code + `Dataset/` + `experiments/`) lives. Only used if `mount_drive=True`. |
-| `Dataset_url` | URL of the dataset zip; passed into the config as `cfg.DATASET_URL`. |
 | `download_results` | `True` also downloads and extracts a pre-computed `Results.zip` (past `experiments/` + `test_results/`) via `SturmFusion.download_and_extract_results(cfg)`, so you can inspect/plot existing runs without training. `False` skips this. |
 | `run_training` | `True` runs the hyperparameter grid search training loop (§4). `False` skips straight to testing/inference/plotting — useful once training is done, or when only `download_results` is needed. |
 
@@ -88,8 +86,9 @@ At least one of `mount_drive` or `clone_repo` must be `True`, or the cell raises
 - **neither** → local development against an already-cloned repo.
 
 After this cell, `cfg` is one of `S1_CFG()`, `S2_CFG()`, or `Fusion_CFG()` (from
-[src/config.py](src/config.py)), with `cfg.ROOT`, `cfg.DATASET_URL`, and `cfg.DEVICE`
-("cuda" if available, else "cpu") set.
+[src/config.py](src/config.py)), with `cfg.ROOT` and `cfg.DEVICE`
+("cuda" if available, else "cpu") set. The dataset URL is fixed as `cfg.DATASET_ZIP_URL`
+in [src/config.py](src/config.py), rather than being configurable per-notebook.
 
 ### Install dependencies
 

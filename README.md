@@ -20,6 +20,10 @@ Each notebook is independent — you can run any one of them without the others,
 `03_Fusion.ipynb` is most meaningful to compare once you have S1 and S2 results.
 
 ---
+[![Dataset on HF](https://huggingface.co/datasets/huggingface/badges/resolve/main/dataset-on-hf-md.svg)](https://huggingface.co/datasets/YOUR-USERNAME/STURM-Fusion-24)
+---
+
+---
 **[Read the full dissertation (PDF)](./docs/Millin-Reade_MSc_Dissertation_Flood_Mapping.pdf)**
 ---
 

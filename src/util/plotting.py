@@ -742,13 +742,145 @@ def plot_iou_vs_flood_scatter(
 
     return plot_controle(fig, save_path, show)
 
+def plot_iou_vs_flood_median(
+    csv_paths,
+    iou_col="iou",
+    flood_pixels_col="flood_pixels",
+    total_pixels_col="total_valid_pixels",
+    data_type_col="data_type",
+    bin_width=10,          # coverage bin width in percentage points
+    min_samples=1,         # suppress a model's bin if it has fewer than this many tiles
+    show_scatter=True,     # faint raw points behind the lines
+    scatter_alpha=0.15,
+    band_alpha=0.20,       # IQR shading opacity
+    figsize=(8, 6),
+    title="Flood coverage vs IoU",
+    show_legend=True,
+    save_path=None,
+    show=True,
+):
+    """
+    Plot median IoU against flood coverage for multiple model result CSVs,
+    with an interquartile-range (Q1-Q3) shaded band per model. Coverage is
+    binned in fixed-width intervals; the median and quartiles are computed
+    within each bin.
+    """
+    label_map = {
+        "Sentinel1_SAR": "S1",
+        "Sentinel2_Optical": "S2",
+        "Fusion_SAR_Optical": "Fusion",
+    }
+    marker_map = {"S1": "o", "S2": "^", "Fusion": "*"}
+    color_map = {"S1": "blue", "S2": "orange", "Fusion": "green"}
+
+    # Fixed bin edges across the full 0-100% coverage range so all models
+    # share the same x-axis bins and remain directly comparable.
+    bin_edges = np.arange(0, 100 + bin_width, bin_width)
+    bin_centres = (bin_edges[:-1] + bin_edges[1:]) / 2
+
+    fig = plt.figure(figsize=figsize)
+
+    for csv_path in csv_paths:
+        df = pd.read_csv(csv_path)
+        if data_type_col not in df.columns:
+            raise ValueError(f"'{data_type_col}' column not found in {csv_path}")
+
+        data_type = df[data_type_col].iloc[0]
+        label = label_map.get(data_type, data_type)
+        marker = marker_map.get(label, "o")
+        color = color_map.get(label, None)
+
+        df["flood_percentage"] = (
+            df[flood_pixels_col] / df[total_pixels_col]
+        ) * 100
+
+        # Optional faint scatter for context (shows the raw spread and the
+        # cluster of zeros at low coverage).
+        if show_scatter:
+            plt.scatter(
+                df["flood_percentage"],
+                df[iou_col],
+                marker=marker,
+                color=color,
+                alpha=scatter_alpha,
+                s=20,
+                linewidths=0,
+                zorder=1,
+            )
+
+        # Assign each tile to a coverage bin, then aggregate IoU per bin.
+        df["bin"] = pd.cut(
+            df["flood_percentage"],
+            bins=bin_edges,
+            labels=False,
+            include_lowest=True,
+        )
+        grouped = df.groupby("bin")[iou_col]
+        stats = grouped.agg(
+            median="median",
+            q1=lambda s: s.quantile(0.25),
+            q3=lambda s: s.quantile(0.75),
+            n="count",
+        )
+
+        # Drop sparse bins so the line isn't dragged around by 1-2 tiles.
+        stats = stats[stats["n"] >= min_samples]
+        if stats.empty:
+            continue
+
+        x = bin_centres[stats.index.to_numpy()]
+        med = stats["median"].to_numpy()
+        q1 = stats["q1"].to_numpy()
+        q3 = stats["q3"].to_numpy()
+
+        # IQR band, then the median line on top.
+        plt.fill_between(x, q1, q3, color=color, alpha=band_alpha, zorder=2)
+        plt.plot(
+            x, med,
+            label=label,
+            marker=marker,
+            color=color,
+            linewidth=2,
+            markersize=7,
+            zorder=3,
+        )
+
+    plt.xlabel("Flood coverage (%)")
+    plt.ylabel("IoU")
+    plt.title(title)
+    plt.xlim(0, 100)
+    plt.ylim(0, 1)
+    plt.grid(alpha=0.3)
+
+    if show_legend:
+        handles, labels = plt.gca().get_legend_handles_labels()
+        plt.legend(
+            handles,
+            labels,
+            title="Model",
+            loc="lower right",
+            fontsize=13,
+            title_fontsize=13,
+            markerscale=1.5,
+            handlelength=1.5,
+            handletextpad=0.3,
+            labelspacing=0.3,
+            borderpad=0.5,
+            frameon=True,
+            framealpha=0.9,
+            edgecolor="gray",
+        )
+
+    plt.tight_layout()
+    return plot_controle(fig, save_path, show)
+
 def plot_average_iou_per_event(
     results_csv,
     event_col="ems_code",
     iou_col="iou",
     figsize=(12, 5),
     title="Average IoU per EMSR event",
-    sort=True,
+    sort=False,
     save_path=None,
     show=True,
 ):

@@ -20,6 +20,11 @@ Each notebook is independent — you can run any one of them without the others,
 `03_Fusion.ipynb` is most meaningful to compare once you have S1 and S2 results.
 
 ---
+[![HF Dataset](https://img.shields.io/badge/🤗%20Hugging%20Face-STURM--Fusion--24-yellow)](https://huggingface.co/datasets/taylor-millin-reade/STURM-Fusion-24)
+[![License: CC BY 4.0](https://img.shields.io/badge/License-CC%20BY%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by/4.0/)
+---
+
+---
 **[Read the full dissertation (PDF)](./docs/Millin-Reade_MSc_Dissertation_Flood_Mapping.pdf)**
 ---
 
@@ -75,7 +80,7 @@ run_training = True
 | `clone_repo` | `True` clones `https://github.com/TAX2310/Flood-Mapping.git` into `root_path` if it doesn't already exist there. `False` assumes the repo is already present. |
 | `root_path` | Where the project (code + `Dataset/` + `experiments/`) lives. Only used if `mount_drive=True`. |
 | `download_results` | `True` also downloads and extracts a pre-computed `Results.zip` (past `experiments/` + `test_results/`) via `SturmFusion.download_and_extract_results(cfg)`, so you can inspect/plot existing runs without training. `False` skips this. |
-| `run_training` | `True` runs the hyperparameter grid search training loop (§4). `False` skips straight to testing/inference/plotting — useful once training is done, or when only `download_results` is needed. |
+| `run_training` | `True` runs the hyperparameter grid search training loop. `False` skips straight to testing/inference/plotting — useful once training is done, or when only `download_results` is needed. |
 
 
 Combinations:
@@ -151,7 +156,7 @@ Notable fields you may want to change before training:
 | `USE_ROTATIONS` | If `True`, training set is 4x augmented with 90°/180°/270° rotations |
 | `MODEL` | Model name passed to `get_model()`, e.g. `"unet_resnet34_sar"`, `"unet_optical"`, `"unet_resnet34_fusion"` |
 | `LEARNING_RATES`, `BATCH_SIZES`, `WEIGHT_DECAYS`, `DROPOUT_RATES` | The hyperparameter grid search space (tuples on the base `CFG`, shared by all three modalities — edit here rather than in the notebooks) |
-| `LR`, `BATCH_SIZE`, `WEIGHT_DECAY`, `DROPOUT_RATE` | Set per hyperparameter-sweep iteration (see §4) |
+| `LR`, `BATCH_SIZE`, `WEIGHT_DECAY`, `DROPOUT_RATE` | Set per hyperparameter-sweep iteration |
 
 Each config also exposes derived `Path` properties (`DATA_PATH`, `S1_PATH`, `S2_PATH`,
 `MASK_PATH`, `METADATA_CSV`, `EXP_DIR`, `EXPORT_DIR`, `S1_MODEL`/`S2_MODEL`/`FUSION_MODEL`
@@ -186,7 +191,7 @@ This performs a **grid search** over `cfg.LEARNING_RATES` / `cfg.BATCH_SIZES` /
 `cfg.WEIGHT_DECAYS` / `cfg.DROPOUT_RATES` (16 combinations by default — edit these
 tuples in [src/config.py](src/config.py) to change the search space for all three
 notebooks at once). The whole loop is skipped if `run_training=False` (set in the
-Setup cell, §2). For each combination:
+Setup cell). For each combination:
 
 1. **`train_from_file(cfg, num_workers)`** ([src/train/training.py](src/train/training.py))
    pickles `cfg` to `tmp_config.pkl` and launches
@@ -309,7 +314,7 @@ Each prints sample tensor shapes, then for every sample shows: the input image(s
 (black=no flood, blue=false positive, red=false negative, white=true flood), and the
 raw probability map.
 
-Aggregate, whole-test-set plots (used on the `*_TEST_RESULTS_CSV` from §6):
+Aggregate, whole-test-set plots (used on the `*_TEST_RESULTS_CSV`):
 
 ```python
 plot.plot_metric_distribution_from_csv(cfg.S1_TEST_RESULTS_CSV)        # histogram of IoU (or any metric) across all test tiles
@@ -333,45 +338,8 @@ plot.plot_fusion_improvement_distribution([cfg.S2_TEST_RESULTS_CSV,
 `fusion_iou - max(s1_iou, s2_iou)` per tile, and histograms that delta — a positive mean
 shows fusion outperforming the best single modality on each tile.
 
-> Run `01_SAR.ipynb` and `02_Optical.ipynb` (through §6, to produce their
+> Run `01_SAR.ipynb` and `02_Optical.ipynb` (to produce their
 > `*_TEST_RESULTS_CSV` files) **before** running these cross-modality comparison cells
 > in `03_Fusion.ipynb`.
 
 ---
-
-## 8. End-to-end checklist
-
-1. Run the **Setup** cell (choose `mount_drive`/`clone_repo` for your environment, and
-   `download_results`/`run_training` depending on whether you want pre-computed results
-   and/or a fresh training run — §2).
-2. Run **download + extract** and **`pip install -r requirements.txt`**.
-3. If `run_training=True`, edit the hyperparameter grid in `src/config.py` if needed and
-   run the **training loop** (§4). Re-running is safe — completed combinations are
-   skipped automatically.
-4. Use `plot.plot_hp_comparison_bar` / `plot.view_training_metrics` to pick the best run.
-5. `testing.select_model_to_test(cfg)` → select that run → test it.
-6. Run **inference** (§6) on a few samples for a sanity check, then on the full test
-   split to build `*_TEST_RESULTS_CSV`.
-7. Visualize qualitative and aggregate results (§7).
-8. For fusion analysis, repeat 1–6 for S1 and S2 first, then run `03_Fusion.ipynb`
-   through to its cross-modality comparison plots.
-
----
-
-## 9. Key implementation notes
-
-- **Reproducibility**: `seed.set_seed(cfg.RANDOM_SEED)` is called at the start of every
-  `make_*_dataloaders` call, so the random train/val/test split (`SPLIT_METHOD="random"`)
-  is reproducible given the same seed and sample list.
-- **Mask binarization**: ground-truth masks are multi-class GeoTIFFs; `BINARY_MASK=True`
-  (default) remaps `WATER_CLASSES=(1,2,3,4,5)` → `1` and `IGNORE_CLASSES=(99,)` → `255`,
-  everything else → `0` (`preprocessing.remap_mask_to_binary`).
-- **Fusion model** ([src/models/LateFusionUNetResNet34.py](src/models/LateFusionUNetResNet34.py)):
-  two independent ResNet34 encoders (one per modality) feed 1×1-conv fusion blocks at
-  every decoder skip level, into a single shared U-Net decoder + segmentation head.
-- **`train_from_file` runs training out-of-process** deliberately — running 16+
-  sequential trainings inside one notebook kernel can leak GPU/CPU memory over time;
-  each subprocess starts clean and exits when done.
-- **Why subprocess + pickle config**: the config dataclass instance is pickled rather
-  than passed as CLI args because it carries `Path` objects and tuples that don't survive
-  `argparse` cleanly.
